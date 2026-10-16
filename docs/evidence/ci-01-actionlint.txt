@@ -1,0 +1,36 @@
+# actionlint (with shellcheck) on the CI/CD workflow. No output + exit 0 = no findings.
+# Date: 2026-10-16T15:07:51Z
+
+$ actionlint -version
+1.7.12
+installed from Homebrew
+built with go1.26.3 compiler for darwin/arm64
+[exit code: 0]
+
+$ shellcheck --version | sed -n 2p
+version: 0.11.0
+[exit code: 0]
+
+$ actionlint -color=false .github/workflows/ci-cd.yml
+[exit code: 0]
+
+$ grep -nE '^  [a-z-]+:$|^    name:|^    needs:|^    if:' .github/workflows/ci-cd.yml
+11:  push:
+37:  run:
+42:  test-backend:
+43:    name: Backend tests (pytest + coverage)
+85:  build-frontend:
+86:    name: Frontend tests + build
+123:  security-code:
+124:    name: Code security (gitleaks, bandit, pip-audit, npm audit)
+200:  docker:
+201:    name: Docker ${{ matrix.component }} (build, Trivy, push)
+202:    needs: [test-backend, build-frontend, security-code]
+333:    name: Compose end-to-end (booking flow through nginx)
+334:    needs: docker
+407:  deploy:
+408:    name: Deploy to Kubernetes (kind + Helm)
+409:    needs: docker
+410:    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+[exit code: 0]
+

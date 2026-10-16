@@ -1,0 +1,544 @@
+# CareQueue CI/CD: test -> build -> scan -> push (GHCR, SHA tags) -> deploy (kind + Helm)
+#
+#   test-backend ---+
+#   build-frontend -+--> docker (matrix: backend, frontend) --+--> compose-e2e
+#   security-code --+    build -> Trivy gate -> push :<sha>   +--> deploy (kind + Helm, main only)
+#
+# Docs: docs/CICD.md
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default. Only the docker job gets packages: write.
+permissions:
+  contents: read
+
+# PRs: a new push cancels the older run. main: runs queue up, never cancelled
+# halfway through a push or deploy.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "24"
+  TRIVY_VERSION: "0.76.0"
+  GITLEAKS_VERSION: "8.30.1"
+  BANDIT_VERSION: "1.9.4"
+  TRIVY_NO_PROGRESS: "true"
+  KIND_CLUSTER: carequeue-ci
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ---------------------------------------------------------------- 1. backend
+  test-backend:
+    name: Backend tests (pytest + coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements-dev.txt
+
+      # Any failing test, or coverage below 80%, exits non-zero and fails the build.
+      - name: pytest (fails the build on a failing test or coverage < 80%)
+        working-directory: backend
+        run: |
+          mkdir -p reports
+          python -m pytest -v \
+            --junitxml=reports/junit.xml \
+            --cov=app --cov-report=term-missing \
+            --cov-report=xml:reports/coverage.xml \
+            --cov-fail-under=80
+
+      - name: Upload test + coverage reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-reports
+          path: backend/reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # --------------------------------------------------------------- 2. frontend
+  build-frontend:
+    name: Frontend tests + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        run: npm ci --no-fund --no-audit
+
+      - name: Unit tests (vitest)
+        run: npm test -- --run
+
+      - name: Production build (vite)
+        run: npm run build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  # --------------------------------------------- 3. code + dependency security
+  security-code:
+    name: Code security (gitleaks, bandit, pip-audit, npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout (full history for the gitleaks history scan)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks ${{ env.GITLEAKS_VERSION }} (checksum verified)
+        working-directory: ${{ runner.temp }}
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          file="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfLO "${base}/${file}"
+          curl -sSfLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          grep " ${file}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "${file}" gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: gitleaks - working tree
+        run: |
+          mkdir -p reports
+          gitleaks dir . --redact --no-banner -v \
+            --report-format sarif --report-path reports/gitleaks-dir.sarif
+
+      - name: gitleaks - full git history
+        run: |
+          gitleaks git . --redact --no-banner -v \
+            --report-format sarif --report-path reports/gitleaks-git.sarif
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      # bandit[sarif] pulls in the SARIF formatter (plain bandit cannot write SARIF).
+      - name: Install bandit + pip-audit
+        run: pip install "bandit[sarif]==${BANDIT_VERSION}" "pip-audit==2.10.1"
+
+      - name: bandit report (all findings, never fails)
+        run: |
+          bandit -r backend/app --exit-zero -f json  -o reports/bandit.json
+          bandit -r backend/app --exit-zero -f sarif -o reports/bandit.sarif
+
+      - name: bandit gate (MEDIUM+ severity, MEDIUM+ confidence)
+        run: bandit -r backend/app --severity-level medium --confidence-level medium
+
+      - name: pip-audit (runtime dependencies, any known vulnerability fails)
+        run: |
+          pip-audit -r backend/requirements.txt --desc -f json -o reports/pip-audit.json || true
+          pip-audit -r backend/requirements.txt --strict --desc
+
+      - name: Setup Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: npm audit (production dependencies, fail on high/critical)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: security-code-reports
+          path: reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ------------------------------------- 4. docker build + Trivy gate + push
+  docker:
+    name: Docker ${{ matrix.component }} (build, Trivy, push)
+    needs: [test-backend, build-frontend, security-code]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write # push to ghcr.io with GITHUB_TOKEN (main only)
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [backend, frontend]
+    env:
+      COMPONENT: ${{ matrix.component }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # GHCR names must be lowercase; the owner comes from the repo so forks push
+      # to their own namespace. Tag = full commit SHA, never "latest".
+      - name: Image name
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/carequeue-${COMPONENT}"
+          echo "IMAGE=${image}" >> "$GITHUB_ENV"
+          echo "IMAGE_REF=${image}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "Image: ${image}:${GITHUB_SHA}"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image (loaded locally, not pushed yet)
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.component }}
+          file: ${{ matrix.component }}/Dockerfile
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          tags: ${{ env.IMAGE_REF }}
+          load: true
+          push: false
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+      - name: Inspect image (size, user)
+        run: |
+          docker image ls "${IMAGE}"
+          user="$(docker image inspect -f '{{.Config.User}}' "${IMAGE_REF}")"
+          echo "Image user: ${user:-<root!>}"
+
+      - name: Install Trivy ${{ env.TRIVY_VERSION }} (checksum verified)
+        working-directory: ${{ runner.temp }}
+        run: |
+          base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+          file="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          curl -sSfLO "${base}/${file}"
+          curl -sSfLO "${base}/trivy_${TRIVY_VERSION}_checksums.txt"
+          grep "  ${file}\$" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c -
+          tar -xzf "${file}" trivy
+          sudo install -m 0755 trivy /usr/local/bin/trivy
+          trivy --version
+
+      - name: Trivy reports (all severities, JSON + SARIF, never fails)
+        run: |
+          mkdir -p reports
+          trivy image --scanners vuln --format json  -o "reports/trivy-${COMPONENT}.json"  "${IMAGE_REF}"
+          trivy image --scanners vuln --format sarif -o "reports/trivy-${COMPONENT}.sarif" --skip-db-update "${IMAGE_REF}"
+
+      - name: Trivy scan summary
+        run: |
+          json="reports/trivy-${COMPONENT}.json"
+          {
+            echo "### Trivy image scan: carequeue-${COMPONENT}"
+            echo ""
+            echo "Image: \`${IMAGE_REF}\`"
+            echo ""
+            echo "OS: $(jq -r '.Metadata.OS | "\(.Family // "?") \(.Name // "")"' "${json}")"
+            echo ""
+            echo "| Severity | All | Fixable |"
+            echo "|---|---|---|"
+            for s in CRITICAL HIGH MEDIUM LOW UNKNOWN; do
+              all=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s)] | length' "${json}")
+              fix=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s and (.FixedVersion // "") != "")] | length' "${json}")
+              echo "| ${s} | ${all} | ${fix} |"
+            done
+            echo ""
+            echo "Gate: fail on fixable HIGH/CRITICAL (\`--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1\`)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The M6 gate. Table output is printed in this step's log.
+      - name: Trivy gate (fixable HIGH/CRITICAL fail the pipeline)
+        run: |
+          trivy image --scanners vuln --skip-db-update \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            --format table "${IMAGE_REF}"
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-${{ matrix.component }}
+          path: reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Log in to GHCR with GITHUB_TOKEN
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pushes exactly the image that Trivy scanned (no rebuild), SHA tag only.
+      - name: Push ${{ matrix.component }}:<sha> to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          docker push "${IMAGE_REF}"
+          digest="$(docker image inspect -f '{{index .RepoDigests 0}}' "${IMAGE_REF}")"
+          {
+            echo "### Pushed carequeue-${COMPONENT}"
+            echo '```'
+            echo "${IMAGE_REF}"
+            echo "${digest}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------- 5. end-to-end with Compose
+  compose-e2e:
+    name: Compose end-to-end (booking flow through nginx)
+    needs: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GIT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: docker compose up --build
+        run: docker compose up -d --build
+
+      - name: Wait until the API answers through the frontend (port 3000)
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS http://localhost:3000/api/info >/dev/null 2>&1; then
+              echo "API up after ~$((i * 2))s"; exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not come up in time"; docker compose ps; exit 1
+
+      - name: CRUD + booking flow through http://localhost:3000/api
+        run: |
+          set -euo pipefail
+          api=http://localhost:3000/api
+          curl -fsS http://localhost:3000/ | grep -qi '<title>CareQueue'
+          curl -fsS "${api}/info" | tee /tmp/info.json; echo
+          jq -e --arg sha "${GITHUB_SHA}" '.commit == $sha' /tmp/info.json
+
+          # Create a doctor
+          doc=$(curl -fsS -X POST "${api}/doctors" -H 'Content-Type: application/json' \
+            -d '{"full_name":"Dr. CI Pipeline","specialty":"General Medicine","room":"CI-1"}' | jq -r .id)
+          curl -fsS "${api}/doctors/${doc}" | jq -e '.full_name == "Dr. CI Pipeline"'
+
+          # Create a patient (fake, run-specific Indian mobile number)
+          phone="9$(printf '%09d' $(( GITHUB_RUN_ID % 1000000000 )))"
+          pat=$(curl -fsS -X POST "${api}/patients" -H 'Content-Type: application/json' \
+            -d "{\"full_name\":\"CI Test Patient\",\"phone\":\"${phone}\",\"date_of_birth\":\"1990-01-15\",\"gender\":\"other\"}" | jq -r .id)
+          curl -fsS -X PUT "${api}/patients/${pat}" -H 'Content-Type: application/json' \
+            -d "{\"full_name\":\"CI Test Patient Updated\",\"phone\":\"${phone}\",\"date_of_birth\":\"1990-01-15\",\"gender\":\"other\"}" \
+            | jq -e '.full_name == "CI Test Patient Updated"'
+
+          # Book tomorrow 10:00 (clinic time), then the same slot again must be rejected (409)
+          day=$(TZ=Asia/Kolkata date -d tomorrow +%F)
+          body="{\"patient_id\":${pat},\"doctor_id\":${doc},\"appointment_date\":\"${day}\",\"slot_time\":\"10:00:00\",\"reason\":\"CI check-up\"}"
+          appt=$(curl -fsS -X POST "${api}/appointments" -H 'Content-Type: application/json' -d "${body}")
+          echo "${appt}" | jq -e '.status == "booked" and .token_number >= 1'
+          id=$(echo "${appt}" | jq -r .id)
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST "${api}/appointments" -H 'Content-Type: application/json' -d "${body}")" = 409
+          curl -fsS "${api}/doctors/${doc}/slots?date=${day}" | jq -e '[.slots[] | select(.status == "booked")] | length == 1'
+
+          # Status transition, then delete
+          curl -fsS -X PATCH "${api}/appointments/${id}/status" -H 'Content-Type: application/json' \
+            -d '{"status":"cancelled"}' | jq -e '.status == "cancelled"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "${api}/appointments/${id}")" = 204
+          test "$(curl -s -o /dev/null -w '%{http_code}' "${api}/appointments/${id}")" = 404
+          curl -fsS "${api}/stats/today" | jq .
+          echo "Compose end-to-end OK"
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          docker compose ps -a || true
+          docker compose logs --tail 100 || true
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  # ------------------------------------- 6. deploy to Kubernetes (kind + Helm)
+  deploy:
+    name: Deploy to Kubernetes (kind + Helm)
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read # pull the private GHCR images with GITHUB_TOKEN
+    env:
+      NAMESPACE: carequeue
+      RELEASE: carequeue
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Image names
+        run: echo "REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      # Port 80 of the kind node is mapped to the runner, so the ingress is
+      # reachable at http://localhost. The label lets ingress-nginx schedule there.
+      - name: Write kind config
+        run: |
+          cat > "${RUNNER_TEMP}/kind.yaml" <<'EOF'
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+                - |
+                  kind: InitConfiguration
+                  nodeRegistration:
+                    kubeletExtraArgs:
+                      node-labels: "ingress-ready=true"
+              extraPortMappings:
+                - containerPort: 80
+                  hostPort: 80
+                  protocol: TCP
+                - containerPort: 443
+                  hostPort: 443
+                  protocol: TCP
+          EOF
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: ${{ env.KIND_CLUSTER }}
+          config: ${{ runner.temp }}/kind.yaml
+          wait: 120s
+
+      - name: Install ingress-nginx (kind provider manifest)
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/kind/deploy.yaml
+          # rollout status (not "wait --for=condition=Available": with 1 replica that
+          # condition is already true before the pod is Ready).
+          kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s
+          # The admission webhook can still refuse for a few seconds after the pod is
+          # Ready, and an Ingress applied in that gap is rejected: retry a server-side dry run.
+          probe='{"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"name":"webhook-probe","namespace":"default"},"spec":{"ingressClassName":"nginx","defaultBackend":{"service":{"name":"none","port":{"number":80}}}}}'
+          for i in $(seq 1 40); do
+            if echo "${probe}" | kubectl apply --dry-run=server -f - >/dev/null 2>&1; then
+              echo "ingress-nginx admission webhook ready after ~$((i * 3))s"; break
+            fi
+            if [ "${i}" = 40 ]; then echo "admission webhook never became ready"; exit 1; fi
+            sleep 3
+          done
+
+      # GHCR packages start private: the cluster pulls with a docker-registry
+      # secret built from this job's short-lived GITHUB_TOKEN.
+      - name: Namespace + GHCR imagePullSecret
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n "${NAMESPACE}" create secret docker-registry ghcr \
+            --docker-server=ghcr.io \
+            --docker-username="${GHCR_USER}" \
+            --docker-password="${GHCR_TOKEN}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # --set-string for the SHA: an all-digit or "1e5"-style SHA would
+      # otherwise be parsed as a number by Helm.
+      - name: helm upgrade --install
+        run: |
+          helm version --short
+          helm upgrade --install "${RELEASE}" helm/carequeue \
+            --namespace "${NAMESPACE}" --create-namespace \
+            --set-string backend.image.repository="${REGISTRY}/carequeue-backend" \
+            --set-string backend.image.tag="${GITHUB_SHA}" \
+            --set-string frontend.image.repository="${REGISTRY}/carequeue-frontend" \
+            --set-string frontend.image.tag="${GITHUB_SHA}" \
+            --set-string backend.env.GIT_SHA="${GITHUB_SHA}" \
+            --set "imagePullSecrets[0].name=ghcr" \
+            --set ingress.enabled=true \
+            --set-string ingress.className=nginx \
+            --set-string ingress.host=carequeue.local \
+            --set postgresql.enabled=true \
+            --wait --timeout 8m
+
+      - name: kubectl rollout status
+        run: |
+          for d in $(kubectl -n "${NAMESPACE}" get deployments -o name); do
+            kubectl -n "${NAMESPACE}" rollout status "${d}" --timeout=180s
+          done
+          helm list -n "${NAMESPACE}"
+          kubectl -n "${NAMESPACE}" get deploy,pods,svc,ingress -o wide
+
+      - name: helm test
+        run: helm test "${RELEASE}" -n "${NAMESPACE}" --logs --timeout 5m
+
+      - name: Smoke test through the ingress (commit must match this run)
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 60); do
+            if curl -fsS -H 'Host: carequeue.local' http://localhost/api/info -o /tmp/info.json 2>/dev/null; then break; fi
+            sleep 2
+          done
+          cat /tmp/info.json; echo
+          jq -e --arg sha "${GITHUB_SHA}" '.commit == $sha' /tmp/info.json
+          curl -fsS -H 'Host: carequeue.local' http://localhost/ | grep -qi '<title>CareQueue'
+          curl -fsS -H 'Host: carequeue.local' http://localhost/api/doctors | jq -e 'type == "array"'
+          # Path-only rule: plain localhost (no Host header) must work too
+          curl -fsS http://localhost/api/info | jq -e --arg sha "${GITHUB_SHA}" '.commit == $sha'
+          {
+            echo "### Deployed to kind"
+            echo "Commit \`${GITHUB_SHA}\` is live: /api/info through ingress-nginx returned the same SHA."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Debug info on failure
+        if: failure()
+        run: |
+          kubectl -n "${NAMESPACE}" get all,ingress,events || true
+          kubectl -n "${NAMESPACE}" describe pods || true
+          kubectl -n "${NAMESPACE}" logs -l app.kubernetes.io/instance=carequeue --all-containers --tail=80 || true
+          kubectl -n ingress-nginx logs deployment/ingress-nginx-controller --tail=50 || true

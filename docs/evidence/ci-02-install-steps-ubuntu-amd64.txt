@@ -1,0 +1,64 @@
+# The gitleaks and Trivy install steps of .github/workflows/ci-cd.yml, extracted verbatim
+# (Python yaml parser, step 'run:' blocks) and executed in an ubuntu:24.04 linux/amd64 container,
+# the same OS/arch as GitHub's ubuntu-latest runner. Shell flags match 'shell: bash' on Actions
+# (bash -eo pipefail). curl, ca-certificates and sudo are pre-installed on the real runner,
+# so the container installs them first (apt output trimmed to the last line).
+# Date: 2026-10-16T14:40:37Z
+
+$ cat install-steps.sh
+#!/bin/bash
+# Generated from .github/workflows/ci-cd.yml: the two install steps, copied verbatim.
+set -eo pipefail
+export TRIVY_VERSION=0.76.0 GITLEAKS_VERSION=8.30.1
+echo "=== step: security-code / Install gitleaks (verbatim) ==="
+cd "$(mktemp -d)"
+base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+file="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+curl -sSfLO "${base}/${file}"
+curl -sSfLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+grep " ${file}\$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum -c -
+tar -xzf "${file}" gitleaks
+sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+gitleaks version
+
+echo "=== step: docker / Install Trivy (verbatim) ==="
+cd "$(mktemp -d)"
+base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+file="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+curl -sSfLO "${base}/${file}"
+curl -sSfLO "${base}/trivy_${TRIVY_VERSION}_checksums.txt"
+grep "  ${file}\$" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c -
+tar -xzf "${file}" trivy
+sudo install -m 0755 trivy /usr/local/bin/trivy
+trivy --version
+
+echo "=== negative test: a tampered tarball must FAIL the checksum check ==="
+cd "$(mktemp -d)"
+base="https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}"
+file="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+curl -sSfLO "${base}/trivy_${TRIVY_VERSION}_checksums.txt"
+echo "not the real tarball" > "${file}"
+if grep "  ${file}\$" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c -; then echo "UNEXPECTED: tampered file passed"; exit 1; else echo "OK: tampered file rejected (sha256sum exit non-zero), the CI step would fail here"; fi
+
+$ docker run --rm --platform linux/amd64 -v "$PWD/install-steps.sh:/install-steps.sh:ro" ubuntu:24.04 bash -c "apt-get update -qq && apt-get install -y -qq curl ca-certificates sudo >/dev/null 2>&1 && uname -m && . /etc/os-release && echo \$PRETTY_NAME && bash -eo pipefail /install-steps.sh"
+Unable to find image 'ubuntu:24.04' locally
+24.04: Pulling from library/ubuntu
+a60ef8ec184e: Pulling fs layer
+2ea90c0e4faa: Download complete
+a60ef8ec184e: Download complete
+a60ef8ec184e: Pull complete
+Digest: sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
+Status: Downloaded newer image for ubuntu:24.04
+x86_64
+Ubuntu 24.04.5 LTS
+=== step: security-code / Install gitleaks (verbatim) ===
+gitleaks_8.30.1_linux_x64.tar.gz: OK
+8.30.1
+=== step: docker / Install Trivy (verbatim) ===
+trivy_0.76.0_Linux-64bit.tar.gz: OK
+Version: 0.76.0
+=== negative test: a tampered tarball must FAIL the checksum check ===
+trivy_0.76.0_Linux-64bit.tar.gz: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+OK: tampered file rejected (sha256sum exit non-zero), the CI step would fail here
+[exit code: 0]

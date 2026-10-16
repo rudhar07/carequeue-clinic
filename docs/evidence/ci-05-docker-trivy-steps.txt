@@ -1,0 +1,305 @@
+# docker job: the 'Image name', 'Inspect image', 'Trivy reports', 'Trivy scan summary' and 'Trivy gate'
+# steps, extracted verbatim from .github/workflows/ci-cd.yml (docker-steps.sh), run in an ubuntu:24.04
+# linux/amd64 container against the host Docker daemon (socket mount). The images were built locally
+# for linux/amd64 from the current backend/ and frontend/ (same Dockerfiles/build-arg as CI) and tagged
+# with a FAKE placeholder SHA 0123...4567. Nothing was pushed (the push steps only run on GitHub, main).
+# Trivy DB is downloaded fresh, so results reflect the DB of 2026-10-16; CI results can differ later.
+# Date: 2026-10-16T14:51:26Z
+
+$ cat docker-steps.sh
+#!/bin/bash
+set -eo pipefail
+echo "=== step: Image name (verbatim) ==="
+image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/carequeue-${COMPONENT}"
+echo "IMAGE=${image}" >> "$GITHUB_ENV"
+echo "IMAGE_REF=${image}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+echo "Image: ${image}:${GITHUB_SHA}"
+
+echo "=== step: Inspect image (size, user) (verbatim) ==="
+set -a; . "$GITHUB_ENV"; set +a
+docker image ls "${IMAGE}"
+user="$(docker image inspect -f '{{.Config.User}}' "${IMAGE_REF}")"
+echo "Image user: ${user:-<root!>}"
+
+echo "=== step: Trivy reports (all severities, JSON + SARIF, never fails) (verbatim) ==="
+set -a; . "$GITHUB_ENV"; set +a
+mkdir -p reports
+trivy image --scanners vuln --format json  -o "reports/trivy-${COMPONENT}.json"  "${IMAGE_REF}"
+trivy image --scanners vuln --format sarif -o "reports/trivy-${COMPONENT}.sarif" --skip-db-update "${IMAGE_REF}"
+
+echo "=== step: Trivy scan summary (verbatim) ==="
+json="reports/trivy-${COMPONENT}.json"
+{
+  echo "### Trivy image scan: carequeue-${COMPONENT}"
+  echo ""
+  echo "Image: \`${IMAGE_REF}\`"
+  echo ""
+  echo "OS: $(jq -r '.Metadata.OS | "\(.Family // "?") \(.Name // "")"' "${json}")"
+  echo ""
+  echo "| Severity | All | Fixable |"
+  echo "|---|---|---|"
+  for s in CRITICAL HIGH MEDIUM LOW UNKNOWN; do
+    all=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s)] | length' "${json}")
+    fix=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s and (.FixedVersion // "") != "")] | length' "${json}")
+    echo "| ${s} | ${all} | ${fix} |"
+  done
+  echo ""
+  echo "Gate: fail on fixable HIGH/CRITICAL (\`--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1\`)."
+} >> "$GITHUB_STEP_SUMMARY"
+
+echo "=== step: Trivy gate (fixable HIGH/CRITICAL fail the pipeline) (verbatim) ==="
+trivy image --scanners vuln --skip-db-update \
+  --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+  --format table "${IMAGE_REF}"
+
+
+$ docker run --rm --platform linux/amd64 -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/docker-steps.sh:/docker-steps.sh:ro" -v "$PWD/run-docker-steps.sh:/run.sh:ro" -v "$PWD/work:/work" ubuntu:24.04 bash /run.sh
+container: x86_64, Ubuntu 24.04.5 LTS, bash 5.2.21(1)-release, docker client 29.1.3
+trivy_0.76.0_Linux-64bit.tar.gz: OK
+Version: 0.76.0
+
+################ matrix.component = backend ################
+=== step: Image name (verbatim) ===
+Image: ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567
+=== step: Inspect image (size, user) (verbatim) ===
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+IMAGE                                                                         ID             DISK USAGE   CONTENT SIZE   EXTRA
+ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567   9c0b0141d988       64.1MB         64.1MB        
+Image user: 10001
+=== step: Trivy reports (all severities, JSON + SARIF, never fails) (verbatim) ===
+2026-10-16T14:52:54Z	INFO	[vulndb] Need to update DB
+2026-10-16T14:52:54Z	INFO	[vulndb] Downloading vulnerability DB...
+2026-10-16T14:52:54Z	INFO	[vulndb] Downloading artifact...	repo="mirror.gcr.io/aquasec/trivy-db:2"
+2026-10-16T14:53:19Z	INFO	[vulndb] Artifact successfully downloaded	repo="mirror.gcr.io/aquasec/trivy-db:2"
+2026-10-16T14:53:20Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:53:21Z	WARN	Third-party SBOM may lead to inaccurate vulnerability detection
+2026-10-16T14:53:21Z	WARN	Recommend using Trivy to generate SBOMs
+2026-10-16T14:53:21Z	INFO	[python] Licenses acquired from one or more METADATA files may be subject to additional terms. Use `--debug` flag to see all affected packages.
+2026-10-16T14:53:22Z	INFO	Detected OS	family="debian" version="13.7"
+2026-10-16T14:53:22Z	INFO	[debian] Detecting vulnerabilities...	os_version="13" pkg_num=87
+2026-10-16T14:53:22Z	INFO	Number of language-specific files	num=1
+2026-10-16T14:53:22Z	INFO	[python-pkg] Detecting vulnerabilities...
+2026-10-16T14:53:22Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.76/guide/scanner/vulnerability#severity-selection for details.
+2026-10-16T14:53:22Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:53:22Z	INFO	Detected OS	family="debian" version="13.7"
+2026-10-16T14:53:22Z	INFO	[debian] Detecting vulnerabilities...	os_version="13" pkg_num=87
+2026-10-16T14:53:22Z	INFO	Number of language-specific files	num=1
+2026-10-16T14:53:22Z	INFO	[python-pkg] Detecting vulnerabilities...
+2026-10-16T14:53:22Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.76/guide/scanner/vulnerability#severity-selection for details.
+=== step: Trivy scan summary (verbatim) ===
+=== step: Trivy gate (fixable HIGH/CRITICAL fail the pipeline) (verbatim) ===
+2026-10-16T14:53:23Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:53:23Z	INFO	Detected OS	family="debian" version="13.7"
+2026-10-16T14:53:23Z	INFO	[debian] Detecting vulnerabilities...	os_version="13" pkg_num=87
+2026-10-16T14:53:23Z	INFO	Number of language-specific files	num=1
+2026-10-16T14:53:23Z	INFO	[python-pkg] Detecting vulnerabilities...
+2026-10-16T14:53:23Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.76/guide/scanner/vulnerability#severity-selection for details.
+
+Report Summary
+
+┌──────────────────────────────────────────────────────────────────────────────────┬────────────┬─────────────────┐
+│                                      Target                                      │    Type    │ Vulnerabilities │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567      │   debian   │        0        │
+│ (debian 13.7)                                                                    │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/alembic-1.20.0.dist-info/METADATA         │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/annotated_doc-0.0.5.dist-info/METADATA    │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/annotated_types-0.8.0.dist-info/METADATA  │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/anyio-4.15.1.dist-info/METADATA           │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/click-8.5.0.dist-info/METADATA            │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/fastapi-0.143.3.dist-info/METADATA        │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/h11-0.16.0.dist-info/METADATA             │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/idna-3.20.dist-info/METADATA              │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/mako-1.4.3.dist-info/METADATA             │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/markupsafe-3.0.4.dist-info/METADATA       │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/opentelemetry_api-1.45.1.dist-info/METAD- │ python-pkg │        0        │
+│ ATA                                                                              │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/prometheus_client-0.26.0.dist-info/METAD- │ python-pkg │        0        │
+│ ATA                                                                              │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/prometheus_fastapi_instrumentator-8.1.0.- │ python-pkg │        0        │
+│ dist-info/METADATA                                                               │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/psycopg-3.3.6.dist-info/METADATA          │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/psycopg_binary-3.3.6.dist-info/METADATA   │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/pydantic-2.14.1.dist-info/METADATA        │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/pydantic_core-2.50.1.dist-info/METADATA   │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/pydantic_settings-2.16.0.dist-info/METAD- │ python-pkg │        0        │
+│ ATA                                                                              │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/python_dotenv-1.2.4.dist-info/METADATA    │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/sqlalchemy-2.1.4.dist-info/METADATA       │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/starlette-1.8.0.dist-info/METADATA        │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/typing_extensions-4.16.0.dist-info/METAD- │ python-pkg │        0        │
+│ ATA                                                                              │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/typing_inspection-0.4.4.dist-info/METADA- │ python-pkg │        0        │
+│ TA                                                                               │            │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/tzdata-2026.5.dist-info/METADATA          │ python-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+│ usr/local/lib/python3.13/site-packages/uvicorn-0.54.0.dist-info/METADATA         │ python-pkg │        0        │
+└──────────────────────────────────────────────────────────────────────────────────┴────────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+[docker-steps exit code for backend: 0]
+--- $GITHUB_STEP_SUMMARY written by the summary step ---
+### Trivy image scan: carequeue-backend
+
+Image: `ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567`
+
+OS: debian 13.7
+
+| Severity | All | Fixable |
+|---|---|---|
+| CRITICAL | 0 | 0 |
+| HIGH | 44 | 0 |
+| MEDIUM | 58 | 0 |
+| LOW | 61 | 0 |
+| UNKNOWN | 3 | 2 |
+
+Gate: fail on fixable HIGH/CRITICAL (`--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1`).
+total 1192
+-rw-r--r-- 1 root root 877000 Oct 16 14:53 trivy-backend.json
+-rw-r--r-- 1 root root 336414 Oct 16 14:53 trivy-backend.sarif
+
+################ matrix.component = frontend ################
+=== step: Image name (verbatim) ===
+Image: ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567
+=== step: Inspect image (size, user) (verbatim) ===
+WARNING: This output is designed for human readability. For machine-readable output, please use --format.
+IMAGE                                                                          ID             DISK USAGE   CONTENT SIZE   EXTRA
+ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567   f92d7cd9e423       25.7MB         25.7MB        
+Image user: 101
+=== step: Trivy reports (all severities, JSON + SARIF, never fails) (verbatim) ===
+2026-10-16T14:53:23Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:53:24Z	INFO	Detected OS	family="alpine" version="3.24.2"
+2026-10-16T14:53:24Z	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=70
+2026-10-16T14:53:24Z	INFO	Number of language-specific files	num=0
+2026-10-16T14:53:25Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:53:25Z	INFO	Detected OS	family="alpine" version="3.24.2"
+2026-10-16T14:53:25Z	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=70
+2026-10-16T14:53:25Z	INFO	Number of language-specific files	num=0
+=== step: Trivy scan summary (verbatim) ===
+=== step: Trivy gate (fixable HIGH/CRITICAL fail the pipeline) (verbatim) ===
+2026-10-16T14:53:25Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:53:25Z	INFO	Detected OS	family="alpine" version="3.24.2"
+2026-10-16T14:53:25Z	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=70
+2026-10-16T14:53:25Z	INFO	Number of language-specific files	num=0
+
+Report Summary
+
+┌──────────────────────────────────────────────────────────────────────────────┬────────┬─────────────────┐
+│                                    Target                                    │  Type  │ Vulnerabilities │
+├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
+│ ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567 │ alpine │        0        │
+│ (alpine 3.24.2)                                                              │        │                 │
+└──────────────────────────────────────────────────────────────────────────────┴────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+[docker-steps exit code for frontend: 0]
+--- $GITHUB_STEP_SUMMARY written by the summary step ---
+### Trivy image scan: carequeue-frontend
+
+Image: `ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567`
+
+OS: alpine 3.24.2
+
+| Severity | All | Fixable |
+|---|---|---|
+| CRITICAL | 0 | 0 |
+| HIGH | 0 | 0 |
+| MEDIUM | 0 | 0 |
+| LOW | 0 | 0 |
+| UNKNOWN | 0 | 0 |
+
+Gate: fail on fixable HIGH/CRITICAL (`--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1`).
+total 1360
+-rw-r--r-- 1 root root 877000 Oct 16 14:53 trivy-backend.json
+-rw-r--r-- 1 root root 336414 Oct 16 14:53 trivy-backend.sarif
+-rw-r--r-- 1 root root 165069 Oct 16 14:53 trivy-frontend.json
+-rw-r--r-- 1 root root    988 Oct 16 14:53 trivy-frontend.sarif
+[exit code: 0]
+
+# --- Negative test: does the Trivy gate FAIL on fixable HIGH/CRITICAL CVEs? ---
+# The 'Trivy gate' step (gate.sh, verbatim) is run with IMAGE_REF set to an old, known-vulnerable
+# public image (nginx:1.21.0-alpine, 2021). TRIVY_IMAGE_SRC=remote makes Trivy fetch it straight
+# from Docker Hub (a local Docker Desktop quirk prevents exporting a single-arch pull of a multi-arch
+# image); the gate command itself is unchanged. Expected: a findings table and exit code 1.
+
+$ cat gate.sh
+trivy image --scanners vuln --skip-db-update \
+  --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+  --format table "${IMAGE_REF}"
+
+$ docker run --rm --platform linux/amd64 -v "$PWD/gate.sh:/gate.sh:ro" ubuntu:24.04 bash -c "<apt: curl ca-certificates sudo; verbatim Trivy install; trivy image --download-db-only> && IMAGE_REF=nginx:1.21.0-alpine TRIVY_IMAGE_SRC=remote TRIVY_PLATFORM=linux/amd64 bash -eo pipefail /gate.sh"
+trivy_0.76.0_Linux-64bit.tar.gz: OK
+2026-10-16T14:57:13Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T14:57:24Z	INFO	Detected OS	family="alpine" version="3.13.5"
+2026-10-16T14:57:24Z	INFO	[alpine] Detecting vulnerabilities...	os_version="3.13" repository="3.13" pkg_num=42
+2026-10-16T14:57:24Z	INFO	Number of language-specific files	num=0
+2026-10-16T14:57:24Z	WARN	This OS version is no longer supported by the distribution	family="alpine" version="3.13.5"
+2026-10-16T14:57:24Z	WARN	The vulnerability detection may be insufficient because security updates are not provided
+
+Report Summary
+
+┌─────────────────────────────────────┬────────┬─────────────────┐
+│               Target                │  Type  │ Vulnerabilities │
+├─────────────────────────────────────┼────────┼─────────────────┤
+│ nginx:1.21.0-alpine (alpine 3.13.5) │ alpine │       61        │
+└─────────────────────────────────────┴────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+nginx:1.21.0-alpine (alpine 3.13.5)
+===================================
+Total: 61 (HIGH: 52, CRITICAL: 9)
+
+┌───────────────────────┬────────────────┬──────────┬────────┬───────────────────┬──────────────────┬──────────────────────────────────────────────────────────────┐
+│        Library        │ Vulnerability  │ Severity │ Status │ Installed Version │  Fixed Version   │                            Title                             │
+├───────────────────────┼────────────────┼──────────┼────────┼───────────────────┼──────────────────┼──────────────────────────────────────────────────────────────┤
+│ apk-tools             │ CVE-2021-36159 │ CRITICAL │ fixed  │ 2.12.5-r0         │ 2.12.6-r0        │ libfetch: an out of boundary read while libfetch uses strtol │
+│                       │                │          │        │                   │                  │ to parse...                                                  │
+│                       │                │          │        │                   │                  │ https://avd.aquasec.com/nvd/cve-2021-36159                   │
+├───────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────┼──────────────────────────────────────────────────────────────┤
+│ busybox               │ CVE-2021-42378 │ HIGH     │        │ 1.32.1-r6         │ 1.32.1-r7        │ busybox: use-after-free in awk applet leads to denial of     │
+│                       │                │          │        │                   │                  │ service and possibly...                                      │
+│                       │                │          │        │                   │                  │ https://avd.aquasec.com/nvd/cve-2021-42378                   │
+│                       ├────────────────┤          │        │                   │                  ├──────────────────────────────────────────────────────────────┤
+│                       │ CVE-2021-42379 │          │        │                   │                  │ busybox: use-after-free in awk applet leads to denial of     │
+│                       │                │          │        │                   │                  │ service and possibly...                                      │
+│                       │                │          │        │                   │                  │ https://avd.aquasec.com/nvd/cve-2021-42379                   │
+│                       ├────────────────┤          │        │                   │                  ├──────────────────────────────────────────────────────────────┤
+│                       │ CVE-2021-42380 │          │        │                   │                  │ busybox: use-after-free in awk applet leads to denial of     │
+│                       │                │          │        │                   │                  │ service and possibly...                                      │
+│                       │                │          │        │                   │                  │ https://avd.aquasec.com/nvd/cve-2021-42380                   │
+│                       ├────────────────┤          │        │                   │                  ├──────────────────────────────────────────────────────────────┤
+│                       │ CVE-2021-42381 │          │        │                   │                  │ busybox: use-after-free in awk applet leads to denial of     │
+│                       │                │          │        │                   │                  │ service and possibly...                                      │
+... (245 lines in total; table rows after line 45 omitted)
+[exit code: 1]

@@ -1,0 +1,81 @@
+# The 'security-code' job's commands, run locally on macOS against a checkout-shaped copy of the repo
+# (gitignored folders such as node_modules/, dist/, .terraform/ and venvs excluded, as on a fresh CI checkout).
+# Same tool versions as CI: gitleaks 8.30.1, bandit 1.9.4, pip-audit 2.10.1; npm from the local Node.
+# NOT run here: 'gitleaks git' (history scan). It runs git under the hood and this project has no
+# history yet (the student makes the commits); it runs in CI on every push.
+# App code snapshot: 2026-10-16T14:48:44Z (backend/ and frontend/ are still being written by another agent).
+
+$ mkdir -p reports && gitleaks dir . --redact --no-banner -v --report-format sarif --report-path reports/gitleaks-dir.sarif
+8:18PM INF scanned ~329555 bytes (329.55 KB) in 49.9ms
+8:18PM INF no leaks found
+[exit code: 0]
+
+$ bandit --version | head -1
+bandit 1.9.4
+[exit code: 0]
+
+$ bandit -r backend/app --exit-zero -f json -o reports/bandit.json && bandit -r backend/app --exit-zero -f sarif -o reports/bandit.sarif && ls -l reports/
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[json]	INFO	JSON output written to file: reports/bandit.json
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[main]	INFO	running on Python 3.12.13
+[sarif]	INFO	SARIF output written to file: reports/bandit.sarif
+total 136
+-rw-r--r--@ 1 rudhar  staff   6371 Oct 16 20:18 bandit.json
+-rw-r--r--@ 1 rudhar  staff   8276 Oct 16 20:18 bandit.sarif
+-rw-r--r--@ 1 rudhar  staff  48983 Oct 16 20:18 gitleaks-dir.sarif
+[exit code: 0]
+
+$ bandit -r backend/app --severity-level medium --confidence-level medium
+[main]	INFO	profile include tests: None
+[main]	INFO	profile exclude tests: None
+[main]	INFO	cli include tests: None
+[main]	INFO	cli exclude tests: None
+[main]	INFO	running on Python 3.12.13
+Run started:2026-10-16 14:48:45.425812+00:00
+
+Test results:
+	No issues identified.
+
+Code scanned:
+	Total lines of code: 997
+	Total lines skipped (#nosec): 0
+	Total potential issues skipped due to specifically being disabled (e.g., #nosec BXXX): 0
+
+Run metrics:
+	Total issues (by severity):
+		Undefined: 0
+		Low: 0
+		Medium: 0
+		High: 0
+	Total issues (by confidence):
+		Undefined: 0
+		Low: 0
+		Medium: 0
+		High: 0
+Files skipped (0):
+[exit code: 0]
+
+$ pip-audit --version
+pip-audit 2.10.1
+[exit code: 0]
+
+$ pip-audit -r backend/requirements.txt --strict --desc
+No known vulnerabilities found
+[exit code: 0]
+
+$ node --version && npm --version
+v26.5.0
+11.17.0
+[exit code: 0]
+
+$ cd frontend && npm audit --omit=dev --audit-level=high
+found 0 vulnerabilities
+[exit code: 0]
+

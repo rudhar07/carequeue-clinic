@@ -1,0 +1,237 @@
+# deploy job ('Deploy to Kubernetes (kind + Helm)'): its run: steps extracted verbatim from
+# .github/workflows/ci-cd.yml and executed in order on this Mac (Docker Desktop, kind v0.33.0, v4.3.0+gbec5b06, kubectl v1.36.1).
+# IMPORTANT differences from the real CI run:
+#  - helm/carequeue here is a SCRATCH stand-in chart (scratchpad only, NOT the real chart, which the Helm
+#    agent writes later). It implements only the values-key contract the job sets, to prove the job logic.
+#  - 'Create kind cluster' (helm/kind-action) is emulated with: kind create cluster --name $KIND_CLUSTER --config $RUNNER_TEMP/kind.yaml --wait 120s
+#  - 'Image names' step skipped (needs bash 4 for ${,,}; proven in ci-05). REGISTRY=ghcr.io/rudhar07 set directly.
+#  - No GHCR pull: the native arm64 images (built from current backend/ + frontend/, tag = FAKE SHA 0123...4567)
+#    are side-loaded with 'kind load docker-image'. The imagePullSecret is created from a FAKE token
+#    (GHCR_TOKEN=fake-token-local-test-not-real), so this run proves the secret is created and wired, not that GHCR auth works.
+# Date: 2026-10-16T15:00:07Z
+# History: the first two local runs FAILED and led to two fixes in the workflow's ingress step:
+#  (1) 'kubectl wait --for=condition=Available' returned before the controller pod was Ready
+#      (1 replica + maxUnavailable), so the Ingress was rejected by the not-yet-serving admission
+#      webhook ("connect: connection refused"); now 'rollout status' + a server-side dry-run retry loop.
+#  (2) 'kubectl wait ... job --all' failed with NotFound because the admission Jobs have a TTL and
+#      were already deleted; that wait was removed. The run below is the fixed workflow.
+
+$ # --- step: Write kind config (verbatim) ---
+  | cat > "${RUNNER_TEMP}/kind.yaml" <<'EOF'
+  | kind: Cluster
+  | apiVersion: kind.x-k8s.io/v1alpha4
+  | nodes:
+  |   - role: control-plane
+  |     kubeadmConfigPatches:
+  |       - |
+  |         kind: InitConfiguration
+  |         nodeRegistration:
+  |           kubeletExtraArgs:
+  |             node-labels: "ingress-ready=true"
+  |     extraPortMappings:
+  |       - containerPort: 80
+  |         hostPort: 80
+  |         protocol: TCP
+  |       - containerPort: 443
+  |         hostPort: 443
+  |         protocol: TCP
+  | EOF
+$ bash -eo pipefail step-01.sh
+[exit code: 0]
+
+$ kind create cluster --name $KIND_CLUSTER --config $RUNNER_TEMP/kind.yaml --wait 120s
+Creating cluster "carequeue-ci" ...
+ • Ensuring node image (kindest/node:v1.37.0) 🖼️  ...
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
+ • Preparing nodes 📦   ...
+ ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Waiting ≤ 2m0s for control-plane = Ready ⏳  ...
+ ✓ Waiting ≤ 2m0s for control-plane = Ready ⏳
+ • Ready after 15s 💚
+Set kubectl context to "kind-carequeue-ci"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-carequeue-ci
+
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+[exit code: 0]
+
+$ # --- step: Install ingress-nginx (verbatim) ---
+  | kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.15.1/deploy/static/provider/kind/deploy.yaml
+  | # rollout status (not "wait --for=condition=Available": with 1 replica that
+  | # condition is already true before the pod is Ready).
+  | kubectl -n ingress-nginx rollout status deployment/ingress-nginx-controller --timeout=180s
+  | # The admission webhook can still refuse for a few seconds after the pod is
+  | # Ready, and an Ingress applied in that gap is rejected: retry a server-side dry run.
+  | probe='{"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"name":"webhook-probe","namespace":"default"},"spec":{"ingressClassName":"nginx","defaultBackend":{"service":{"name":"none","port":{"number":80}}}}}'
+  | for i in $(seq 1 40); do
+  |   if echo "${probe}" | kubectl apply --dry-run=server -f - >/dev/null 2>&1; then
+  |     echo "ingress-nginx admission webhook ready after ~$((i * 3))s"; break
+  |   fi
+  |   if [ "${i}" = 40 ]; then echo "admission webhook never became ready"; exit 1; fi
+  |   sleep 3
+  | done
+$ bash -eo pipefail step-02.sh
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+deployment.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+Waiting for deployment "ingress-nginx-controller" rollout to finish: 0 of 1 updated replicas are available...
+deployment "ingress-nginx-controller" successfully rolled out
+ingress-nginx admission webhook ready after ~3s
+[exit code: 0]
+
+$ # --- step: Namespace + GHCR imagePullSecret (verbatim) ---
+  | kubectl create namespace "${NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f -
+  | kubectl -n "${NAMESPACE}" create secret docker-registry ghcr \
+  |   --docker-server=ghcr.io \
+  |   --docker-username="${GHCR_USER}" \
+  |   --docker-password="${GHCR_TOKEN}" \
+  |   --dry-run=client -o yaml | kubectl apply -f -
+$ bash -eo pipefail step-03.sh
+namespace/carequeue created
+secret/ghcr created
+[exit code: 0]
+
+$ for c in backend frontend; do kind load docker-image "${REGISTRY}/carequeue-${c}:${GITHUB_SHA}" --name "${KIND_CLUSTER}"; done
+Image: "ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567" with ID "sha256:a7c908aea53b80a751baea4e8a85b7507c62fbb1bd300c0faee43ff005692ecc" not yet present on node "carequeue-ci-control-plane", loading...
+Image: "ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567" with ID "sha256:65f7afa80fea8106a407f40a0cd885f2c0e130d5916990001ac472dde8418fb8" not yet present on node "carequeue-ci-control-plane", loading...
+[exit code: 0]
+
+$ # --- step: helm upgrade --install (verbatim) ---
+  | helm version --short
+  | helm upgrade --install "${RELEASE}" helm/carequeue \
+  |   --namespace "${NAMESPACE}" --create-namespace \
+  |   --set-string backend.image.repository="${REGISTRY}/carequeue-backend" \
+  |   --set-string backend.image.tag="${GITHUB_SHA}" \
+  |   --set-string frontend.image.repository="${REGISTRY}/carequeue-frontend" \
+  |   --set-string frontend.image.tag="${GITHUB_SHA}" \
+  |   --set-string backend.env.GIT_SHA="${GITHUB_SHA}" \
+  |   --set "imagePullSecrets[0].name=ghcr" \
+  |   --set ingress.enabled=true \
+  |   --set-string ingress.className=nginx \
+  |   --set-string ingress.host=carequeue.local \
+  |   --set postgresql.enabled=true \
+  |   --wait --timeout 8m
+$ bash -eo pipefail step-04.sh
+v4.3.0+gbec5b06
+Release "carequeue" does not exist. Installing it now.
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:35:03 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+[exit code: 0]
+
+$ # --- step: kubectl rollout status (verbatim) ---
+  | for d in $(kubectl -n "${NAMESPACE}" get deployments -o name); do
+  |   kubectl -n "${NAMESPACE}" rollout status "${d}" --timeout=180s
+  | done
+  | helm list -n "${NAMESPACE}"
+  | kubectl -n "${NAMESPACE}" get deploy,pods,svc,ingress -o wide
+$ bash -eo pipefail step-05.sh
+deployment "carequeue-backend" successfully rolled out
+deployment "carequeue-frontend" successfully rolled out
+deployment "carequeue-postgresql" successfully rolled out
+NAME     	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART          	APP VERSION
+carequeue	carequeue	1       	2026-10-16 20:35:03.899252 +0530 IST	deployed	carequeue-0.0.1	scratch    
+NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                                         SELECTOR
+deployment.apps/carequeue-backend      2/2     2            2           61s   backend      ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567    app=carequeue-backend
+deployment.apps/carequeue-frontend     2/2     2            2           61s   frontend     ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567   app=carequeue-frontend
+deployment.apps/carequeue-postgresql   1/1     1            1           61s   postgres     postgres:17-alpine                                                             app=carequeue-postgresql
+
+NAME                                        READY   STATUS    RESTARTS      AGE   IP            NODE                         NOMINATED NODE   READINESS GATES
+pod/carequeue-backend-6f6796b8f6-8f8p9      1/1     Running   3 (43s ago)   61s   10.244.0.8    carequeue-ci-control-plane   <none>           <none>
+pod/carequeue-backend-6f6796b8f6-lnh5v      1/1     Running   3 (38s ago)   61s   10.244.0.12   carequeue-ci-control-plane   <none>           <none>
+pod/carequeue-frontend-5db74496cd-2mt7d     1/1     Running   0             61s   10.244.0.11   carequeue-ci-control-plane   <none>           <none>
+pod/carequeue-frontend-5db74496cd-9cbcw     1/1     Running   0             61s   10.244.0.9    carequeue-ci-control-plane   <none>           <none>
+pod/carequeue-postgresql-5855c95b66-fbwrf   1/1     Running   0             61s   10.244.0.10   carequeue-ci-control-plane   <none>           <none>
+
+NAME                           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+service/carequeue-backend      ClusterIP   10.96.1.219     <none>        8000/TCP   61s   app=carequeue-backend
+service/carequeue-frontend     ClusterIP   10.96.97.109    <none>        80/TCP     61s   app=carequeue-frontend
+service/carequeue-postgresql   ClusterIP   10.96.108.180   <none>        5432/TCP   61s   app=carequeue-postgresql
+
+NAME                                  CLASS   HOSTS             ADDRESS     PORTS   AGE
+ingress.networking.k8s.io/carequeue   nginx   carequeue.local   localhost   80      61s
+[exit code: 0]
+
+$ # --- step: helm test (verbatim) ---
+  | helm test "${RELEASE}" -n "${NAMESPACE}" --logs --timeout 5m
+$ bash -eo pipefail step-06.sh
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:35:03 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE:     carequeue-test-api
+Last Started:   Fri Oct 16 20:36:05 2026
+Last Completed: Fri Oct 16 20:36:15 2026
+Phase:          Succeeded
+
+POD LOGS: carequeue-test-api (curl)
+{"app":"carequeue","version":"1.0.0","commit":"0123456789abcdef0123456789abcdef01234567"}
+[exit code: 0]
+
+$ # --- step: Smoke test through the ingress (verbatim) ---
+  | set -euo pipefail
+  | for _ in $(seq 1 60); do
+  |   if curl -fsS -H 'Host: carequeue.local' http://localhost/api/info -o /tmp/info.json 2>/dev/null; then break; fi
+  |   sleep 2
+  | done
+  | cat /tmp/info.json; echo
+  | jq -e --arg sha "${GITHUB_SHA}" '.commit == $sha' /tmp/info.json
+  | curl -fsS -H 'Host: carequeue.local' http://localhost/ | grep -qi '<title>CareQueue'
+  | curl -fsS -H 'Host: carequeue.local' http://localhost/api/doctors | jq -e 'type == "array"'
+  | # Path-only rule: plain localhost (no Host header) must work too
+  | curl -fsS http://localhost/api/info | jq -e --arg sha "${GITHUB_SHA}" '.commit == $sha'
+  | {
+  |   echo "### Deployed to kind"
+  |   echo "Commit \`${GITHUB_SHA}\` is live: /api/info through ingress-nginx returned the same SHA."
+  | } >> "$GITHUB_STEP_SUMMARY"
+$ bash -eo pipefail step-07.sh
+{"app":"carequeue","version":"1.0.0","commit":"0123456789abcdef0123456789abcdef01234567"}
+true
+true
+true
+[exit code: 0]
+
+$ kubectl -n carequeue get secret ghcr -o jsonpath='{.type}'; echo; kubectl -n carequeue get pods -l app.kubernetes.io/instance=carequeue -o jsonpath='{range .items[*]}{.metadata.name}{" imagePullSecrets="}{.spec.imagePullSecrets[*].name}{"\n"}{end}'
+kubernetes.io/dockerconfigjson
+carequeue-backend-6f6796b8f6-8f8p9 imagePullSecrets=ghcr
+carequeue-backend-6f6796b8f6-lnh5v imagePullSecrets=ghcr
+carequeue-frontend-5db74496cd-2mt7d imagePullSecrets=ghcr
+carequeue-frontend-5db74496cd-9cbcw imagePullSecrets=ghcr
+carequeue-postgresql-5855c95b66-fbwrf imagePullSecrets=
+[exit code: 0]
+
+$ kind delete cluster --name carequeue-ci
+Deleting cluster "carequeue-ci" ...
+Deleted nodes: ["carequeue-ci-control-plane"]
+[exit code: 0]
+

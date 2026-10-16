@@ -1,0 +1,136 @@
+# compose-e2e job, run locally against the current docker-compose.yml + backend/ + frontend/.
+# Differences from CI, all to avoid touching the app agent's own running stack / image tags:
+#  - project name carequeue-civerify (-p) and FRONTEND_PORT=3300;
+#  - images = the linux/amd64 images built for ci-05 (same Dockerfiles, GIT_SHA build-arg = fake SHA
+#    0123...4567) via a scratch override file, so 'up' uses --no-build instead of --build;
+#  - the CRUD step script is the verbatim workflow step with http://localhost:3000 replaced by
+#    http://frontend:8080 (curl runs in an ubuntu:24.04 container on the compose network; macOS
+#    'date' lacks GNU -d). GITHUB_RUN_ID=424242 (fake) feeds the run-specific fake phone number.
+# Date: 2026-10-16T14:58:03Z
+
+$ cat ci-override.yml
+# scratch only: use the images built for ci-05 instead of re-tagging carequeue-*:dev
+services:
+  backend:
+    image: ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567
+  frontend:
+    image: ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567
+[exit code: 0]
+
+$ GIT_SHA=0123456789abcdef0123456789abcdef01234567 FRONTEND_PORT=3300 docker compose -p carequeue-civerify -f docker-compose.yml -f ci-override.yml up -d --no-build 2>&1 | grep -v 'Pulling\|Pulled\|Download\|Waiting\|Extracting\|Verifying'
+ Network carequeue-civerify_default Creating 
+ Network carequeue-civerify_default Created 
+ Volume carequeue-civerify_pgdata Creating 
+ Volume carequeue-civerify_pgdata Created 
+ Container carequeue-civerify-db-1 Creating 
+ Container carequeue-civerify-db-1 Created 
+ Container carequeue-civerify-backend-1 Creating 
+ backend The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container carequeue-civerify-backend-1 Created 
+ Container carequeue-civerify-frontend-1 Creating 
+ frontend The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested 
+ Container carequeue-civerify-frontend-1 Created 
+ Container carequeue-civerify-db-1 Starting 
+ Container carequeue-civerify-db-1 Started 
+ Container carequeue-civerify-db-1 Healthy 
+ Container carequeue-civerify-backend-1 Starting 
+ Container carequeue-civerify-backend-1 Started 
+ Container carequeue-civerify-backend-1 Healthy 
+ Container carequeue-civerify-frontend-1 Starting 
+ Container carequeue-civerify-frontend-1 Started 
+[exit code: 0]
+
+$ for i in $(seq 1 90); do if curl -fsS http://localhost:3300/api/info >/dev/null 2>&1; then echo "API up after ~$((i * 2))s"; exit 0; fi; sleep 2; done; exit 1
+API up after ~4s
+[exit code: 0]
+
+$ cat crud.sh   # verbatim step, localhost:3000 -> frontend:8080
+set -euo pipefail
+api=http://frontend:8080/api
+curl -fsS http://frontend:8080/ | grep -qi '<title>CareQueue'
+curl -fsS "${api}/info" | tee /tmp/info.json; echo
+jq -e --arg sha "${GITHUB_SHA}" '.commit == $sha' /tmp/info.json
+
+# Create a doctor
+doc=$(curl -fsS -X POST "${api}/doctors" -H 'Content-Type: application/json' \
+  -d '{"full_name":"Dr. CI Pipeline","specialty":"General Medicine","room":"CI-1"}' | jq -r .id)
+curl -fsS "${api}/doctors/${doc}" | jq -e '.full_name == "Dr. CI Pipeline"'
+
+# Create a patient (fake, run-specific Indian mobile number)
+phone="9$(printf '%09d' $(( GITHUB_RUN_ID % 1000000000 )))"
+pat=$(curl -fsS -X POST "${api}/patients" -H 'Content-Type: application/json' \
+  -d "{\"full_name\":\"CI Test Patient\",\"phone\":\"${phone}\",\"date_of_birth\":\"1990-01-15\",\"gender\":\"other\"}" | jq -r .id)
+curl -fsS -X PUT "${api}/patients/${pat}" -H 'Content-Type: application/json' \
+  -d "{\"full_name\":\"CI Test Patient Updated\",\"phone\":\"${phone}\",\"date_of_birth\":\"1990-01-15\",\"gender\":\"other\"}" \
+  | jq -e '.full_name == "CI Test Patient Updated"'
+
+# Book tomorrow 10:00 (clinic time), then the same slot again must be rejected (409)
+day=$(TZ=Asia/Kolkata date -d tomorrow +%F)
+body="{\"patient_id\":${pat},\"doctor_id\":${doc},\"appointment_date\":\"${day}\",\"slot_time\":\"10:00:00\",\"reason\":\"CI check-up\"}"
+appt=$(curl -fsS -X POST "${api}/appointments" -H 'Content-Type: application/json' -d "${body}")
+echo "${appt}" | jq -e '.status == "booked" and .token_number >= 1'
+id=$(echo "${appt}" | jq -r .id)
+test "$(curl -s -o /dev/null -w '%{http_code}' -X POST "${api}/appointments" -H 'Content-Type: application/json' -d "${body}")" = 409
+curl -fsS "${api}/doctors/${doc}/slots?date=${day}" | jq -e '[.slots[] | select(.status == "booked")] | length == 1'
+
+# Status transition, then delete
+curl -fsS -X PATCH "${api}/appointments/${id}/status" -H 'Content-Type: application/json' \
+  -d '{"status":"cancelled"}' | jq -e '.status == "cancelled"'
+test "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "${api}/appointments/${id}")" = 204
+test "$(curl -s -o /dev/null -w '%{http_code}' "${api}/appointments/${id}")" = 404
+curl -fsS "${api}/stats/today" | jq .
+echo "Compose end-to-end OK"
+
+
+$ docker run --rm --network carequeue-civerify_default -e GITHUB_SHA=0123456789abcdef0123456789abcdef01234567 -e GITHUB_RUN_ID=424242 -v "$PWD/crud.sh:/crud.sh:ro" ubuntu:24.04 bash -c 'apt-get install curl jq (quiet) && bash -eo pipefail /crud.sh'
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+{"app":"carequeue","version":"1.0.0","commit":"0123456789abcdef0123456789abcdef01234567"}
+true
+true
+true
+true
+true
+true
+{
+  "date": "2026-10-16",
+  "total": 30,
+  "by_status": {
+    "booked": 3,
+    "checked_in": 11,
+    "in_consultation": 4,
+    "completed": 8,
+    "cancelled": 0,
+    "no_show": 4
+  },
+  "active_doctors": 5,
+  "patients": 13
+}
+Compose end-to-end OK
+[exit code: 0]
+
+$ docker compose -p carequeue-civerify ps --format 'table {{.Service}}\t{{.Status}}\t{{.Ports}}'
+SERVICE    STATUS                    PORTS
+backend    Up 43 seconds (healthy)   8000/tcp
+db         Up 48 seconds (healthy)   5432/tcp
+frontend   Up 37 seconds (healthy)   0.0.0.0:3300->8080/tcp, [::]:3300->8080/tcp
+[exit code: 0]
+
+$ docker compose -p carequeue-civerify -f docker-compose.yml -f ci-override.yml down -v
+ Container carequeue-civerify-frontend-1 Stopping 
+ Container carequeue-civerify-frontend-1 Stopped 
+ Container carequeue-civerify-frontend-1 Removing 
+ Container carequeue-civerify-frontend-1 Removed 
+ Container carequeue-civerify-backend-1 Stopping 
+ Container carequeue-civerify-backend-1 Stopped 
+ Container carequeue-civerify-backend-1 Removing 
+ Container carequeue-civerify-backend-1 Removed 
+ Container carequeue-civerify-db-1 Stopping 
+ Container carequeue-civerify-db-1 Stopped 
+ Container carequeue-civerify-db-1 Removing 
+ Container carequeue-civerify-db-1 Removed 
+ Network carequeue-civerify_default Removing 
+ Volume carequeue-civerify_pgdata Removing 
+ Volume carequeue-civerify_pgdata Removed 
+ Network carequeue-civerify_default Removed 
+[exit code: 0]
+
