@@ -1,0 +1,59 @@
+# CareQueue local stack: PostgreSQL + FastAPI backend + React/nginx frontend.
+#   docker compose up --build      -> UI on http://localhost:3000
+# Works with no .env file; copy .env.example to .env to change the defaults.
+# Only the UI is published on the host. The backend (8000) and Postgres (5432)
+# stay on the internal network; the browser reaches the API through nginx's /api proxy.
+
+name: carequeue
+
+services:
+  db:
+    image: postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-carequeue}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-carequeue-local-only}
+      POSTGRES_DB: ${POSTGRES_DB:-carequeue}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+    image: carequeue-backend:dev
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-carequeue}:${POSTGRES_PASSWORD:-carequeue-local-only}@db:5432/${POSTGRES_DB:-carequeue}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CLINIC_TIMEZONE: ${CLINIC_TIMEZONE:-Asia/Kolkata}
+      # Start-up steps handled by docker-entrypoint.sh (all idempotent).
+      RUN_MIGRATIONS: "true"
+      RUN_SEED: ${RUN_SEED:-true}
+      SEED_DEMO_QUEUE: ${SEED_DEMO_QUEUE:-true}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    image: carequeue-frontend:dev
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "${FRONTEND_PORT:-3000}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
