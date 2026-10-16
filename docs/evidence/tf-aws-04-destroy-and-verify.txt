@@ -1,0 +1,2085 @@
+# Real AWS: terraform destroy, region ap-south-1
+# started 2026-10-17 00:59:09 IST
+
+$ terraform destroy -auto-approve -input=false
+module.eks.data.aws_caller_identity.current[0]: Reading...
+module.eks.data.aws_iam_policy_document.assume_role_policy[0]: Reading...
+data.aws_iam_policy_document.ebs_csi_assume[0]: Reading...
+module.eks.data.aws_partition.current[0]: Reading...
+data.aws_availability_zones.available: Reading...
+module.eks.module.kms.data.aws_caller_identity.current[0]: Reading...
+data.aws_partition.current: Reading...
+module.eks.aws_cloudwatch_log_group.this[0]: Refreshing state... [id=/aws/eks/carequeue-eks/cluster]
+module.vpc.aws_vpc.this[0]: Refreshing state... [id=vpc-0bfb04165b05468c1]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0] (deposed object d9a739b8): Refreshing state... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833]
+module.eks.data.aws_partition.current[0]: Read complete after 0s [id=aws]
+data.aws_partition.current: Read complete after 0s [id=aws]
+module.eks.data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2830595799]
+data.aws_iam_policy_document.ebs_csi_assume[0]: Read complete after 0s [id=819195744]
+module.eks.module.kms.data.aws_partition.current[0]: Reading...
+module.eks.module.kms.data.aws_partition.current[0]: Read complete after 0s [id=aws]
+aws_iam_role.ebs_csi[0]: Refreshing state... [id=carequeue-eks-ebs-csi]
+module.eks.aws_iam_role.this[0]: Refreshing state... [id=carequeue-eks-cluster-e708d513039d5faf0043a70931]
+module.eks.data.aws_caller_identity.current[0]: Read complete after 0s [id=************]
+module.eks.data.aws_iam_session_context.current[0]: Reading...
+module.eks.data.aws_iam_session_context.current[0]: Read complete after 0s [id=arn:aws:iam::************:user/rudhar]
+module.eks.module.kms.data.aws_caller_identity.current[0]: Read complete after 0s [id=************]
+data.aws_availability_zones.available: Read complete after 3s [id=ap-south-1]
+module.vpc.aws_default_route_table.default[0]: Refreshing state... [id=rtb-04a616c4517618265]
+module.vpc.aws_default_security_group.this[0]: Refreshing state... [id=sg-07cc42ef2012bb510]
+module.vpc.aws_default_network_acl.this[0]: Refreshing state... [id=acl-0f6050dd9679fb869]
+module.vpc.aws_internet_gateway.this[0]: Refreshing state... [id=igw-08589c27afbe0d8d2]
+module.vpc.aws_route_table.public[0]: Refreshing state... [id=rtb-0d13707ff3ef496eb]
+module.eks.aws_security_group.cluster[0]: Refreshing state... [id=sg-0215d14ad1f77131a]
+module.vpc.aws_subnet.public[1]: Refreshing state... [id=subnet-093957180ba5e66f7]
+module.vpc.aws_subnet.public[0]: Refreshing state... [id=subnet-0fe85b8f1bd096bae]
+module.eks.aws_security_group.node[0]: Refreshing state... [id=sg-056861ffeffaa1b70]
+module.vpc.aws_route.public_internet_gateway[0]: Refreshing state... [id=r-rtb-0d13707ff3ef496eb1080289494]
+module.eks.aws_security_group_rule.node["ingress_cluster_443"]: Refreshing state... [id=sgrule-1193670687]
+module.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"]: Refreshing state... [id=sgrule-2491024304]
+module.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"]: Refreshing state... [id=sgrule-717581260]
+module.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"]: Refreshing state... [id=sgrule-4123947568]
+module.eks.aws_security_group_rule.node["ingress_cluster_10251_webhook"]: Refreshing state... [id=sgrule-413523112]
+module.eks.aws_security_group_rule.node["ingress_cluster_kubelet"]: Refreshing state... [id=sgrule-753700051]
+module.eks.aws_security_group_rule.node["egress_all"]: Refreshing state... [id=sgrule-1964076610]
+module.eks.aws_security_group_rule.node["ingress_self_coredns_udp"]: Refreshing state... [id=sgrule-1368510943]
+module.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"]: Refreshing state... [id=sgrule-1315198983]
+module.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"]: Refreshing state... [id=sgrule-1563976742]
+module.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"]: Refreshing state... [id=sgrule-2996118358]
+module.eks.aws_security_group_rule.cluster["ingress_nodes_443"]: Refreshing state... [id=sgrule-1862539929]
+module.vpc.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-0a033b9c6a8a8eb6e]
+module.vpc.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-03ae311a853766cd6]
+module.eks.module.eks_managed_node_group["default"].data.aws_iam_policy_document.assume_role_policy[0]: Reading...
+module.eks.module.eks_managed_node_group["default"].data.aws_iam_policy_document.assume_role_policy[0]: Read complete after 0s [id=2560088296]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role.this[0]: Refreshing state... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3]
+aws_iam_role_policy_attachment.ebs_csi[0]: Refreshing state... [id=carequeue-eks-ebs-csi/arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy]
+module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Refreshing state... [id=carequeue-eks-cluster-e708d513039d5faf0043a70931/arn:aws:iam::aws:policy/AmazonEKSClusterPolicy]
+module.eks.module.kms.data.aws_iam_policy_document.this[0]: Reading...
+module.eks.module.kms.data.aws_iam_policy_document.this[0]: Read complete after 0s [id=1840386632]
+module.eks.module.kms.aws_kms_key.this[0]: Refreshing state... [id=503fede8-b248-4225-b2f7-189a02be8099]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Refreshing state... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Refreshing state... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Refreshing state... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy]
+module.eks.module.kms.aws_kms_alias.this["cluster"]: Refreshing state... [id=alias/eks/carequeue-eks]
+module.eks.aws_iam_policy.cluster_encryption[0]: Refreshing state... [id=arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23]
+module.eks.aws_eks_cluster.this[0]: Refreshing state... [id=carequeue-eks]
+module.eks.aws_eks_access_entry.this["cluster_creator"]: Refreshing state... [id=carequeue-eks:arn:aws:iam::************:user/rudhar]
+module.eks.data.aws_eks_addon_version.this["kube-proxy"]: Reading...
+module.eks.data.aws_eks_addon_version.this["eks-pod-identity-agent"]: Reading...
+module.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"]: Refreshing state... [id=sg-0a524b282a30c89cf,Cluster]
+module.eks.data.aws_eks_addon_version.this["aws-ebs-csi-driver"]: Reading...
+module.eks.data.aws_eks_addon_version.this["coredns"]: Reading...
+module.eks.data.aws_eks_addon_version.this["vpc-cni"]: Reading...
+module.eks.time_sleep.this[0]: Refreshing state... [id=2026-10-16T19:13:59Z]
+module.eks.module.eks_managed_node_group["default"].module.user_data.null_resource.validate_cluster_service_cidr: Refreshing state... [id=************8318340]
+module.eks.module.eks_managed_node_group["default"].data.aws_ssm_parameter.ami[0]: Reading...
+module.eks.module.eks_managed_node_group["default"].aws_launch_template.this[0]: Refreshing state... [id=lt-06389149ce1439994]
+module.eks.data.aws_eks_addon_version.this["eks-pod-identity-agent"]: Read complete after 0s [id=eks-pod-identity-agent]
+module.eks.data.aws_eks_addon_version.this["aws-ebs-csi-driver"]: Read complete after 0s [id=aws-ebs-csi-driver]
+module.eks.data.aws_eks_addon_version.this["vpc-cni"]: Read complete after 0s [id=vpc-cni]
+module.eks.data.aws_eks_addon_version.this["coredns"]: Read complete after 0s [id=coredns]
+module.eks.data.aws_eks_addon_version.this["kube-proxy"]: Read complete after 0s [id=kube-proxy]
+module.eks.aws_eks_addon.before_compute["vpc-cni"]: Refreshing state... [id=carequeue-eks:vpc-cni]
+module.eks.aws_eks_addon.before_compute["eks-pod-identity-agent"]: Refreshing state... [id=carequeue-eks:eks-pod-identity-agent]
+module.eks.aws_eks_access_policy_association.this["cluster_creator_admin"]: Refreshing state... [id=carequeue-eks#arn:aws:iam::************:user/rudhar#arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy]
+module.eks.module.eks_managed_node_group["default"].data.aws_ssm_parameter.ami[0]: Read complete after 0s [id=/aws/service/eks/optimized-ami/1.36/amazon-linux-2023/x86_64/standard/recommended/release_version]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Refreshing state... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640]
+module.eks.aws_iam_role_policy_attachment.cluster_encryption[0]: Refreshing state... [id=carequeue-eks-cluster-e708d513039d5faf0043a70931/arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23]
+module.eks.aws_eks_addon.this["kube-proxy"]: Refreshing state... [id=carequeue-eks:kube-proxy]
+module.eks.aws_eks_addon.this["coredns"]: Refreshing state... [id=carequeue-eks:coredns]
+module.eks.aws_eks_addon.this["aws-ebs-csi-driver"]: Refreshing state... [id=carequeue-eks:aws-ebs-csi-driver]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # aws_iam_role.ebs_csi[0] will be destroyed
+  - resource "aws_iam_role" "ebs_csi" {
+      - arn                   = "arn:aws:iam::************:role/carequeue-eks-ebs-csi" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = [
+                          - "sts:TagSession",
+                          - "sts:AssumeRole",
+                        ]
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "pods.eks.amazonaws.com"
+                        }
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-16T19:03:43Z" -> null
+      - force_detach_policies = false -> null
+      - id                    = "carequeue-eks-ebs-csi" -> null
+      - managed_policy_arns   = [
+          - "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy",
+        ] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "carequeue-eks-ebs-csi" -> null
+      - path                  = "/" -> null
+      - tags                  = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all              = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - unique_id             = "AROAUHP2HWAUQNVDVFSUJ" -> null
+        # (3 unchanged attributes hidden)
+    }
+
+  # aws_iam_role_policy_attachment.ebs_csi[0] will be destroyed
+  - resource "aws_iam_role_policy_attachment" "ebs_csi" {
+      - id         = "carequeue-eks-ebs-csi/arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" -> null
+      - policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" -> null
+      - role       = "carequeue-eks-ebs-csi" -> null
+    }
+
+  # module.eks.aws_cloudwatch_log_group.this[0] will be destroyed
+  - resource "aws_cloudwatch_log_group" "this" {
+      - arn                         = "arn:aws:logs:ap-south-1:************:log-group:/aws/eks/carequeue-eks/cluster" -> null
+      - deletion_protection_enabled = false -> null
+      - id                          = "/aws/eks/carequeue-eks/cluster" -> null
+      - log_group_class             = "STANDARD" -> null
+      - name                        = "/aws/eks/carequeue-eks/cluster" -> null
+      - region                      = "ap-south-1" -> null
+      - retention_in_days           = 1 -> null
+      - skip_destroy                = false -> null
+      - tags                        = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "/aws/eks/carequeue-eks/cluster"
+        } -> null
+      - tags_all                    = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "/aws/eks/carequeue-eks/cluster"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"] will be destroyed
+  - resource "aws_ec2_tag" "cluster_primary_security_group" {
+      - id          = "sg-0a524b282a30c89cf,Cluster" -> null
+      - key         = "Cluster" -> null
+      - region      = "ap-south-1" -> null
+      - resource_id = "sg-0a524b282a30c89cf" -> null
+      - value       = "carequeue-eks" -> null
+    }
+
+  # module.eks.aws_eks_access_entry.this["cluster_creator"] will be destroyed
+  - resource "aws_eks_access_entry" "this" {
+      - access_entry_arn  = "arn:aws:eks:ap-south-1:************:access-entry/carequeue-eks/user/************/rudhar/02d0a311-1a2c-5074-0842-e7a532d2af5c" -> null
+      - cluster_name      = "carequeue-eks" -> null
+      - created_at        = "2026-10-16T19:13:29Z" -> null
+      - id                = "carequeue-eks:arn:aws:iam::************:user/rudhar" -> null
+      - kubernetes_groups = [] -> null
+      - modified_at       = "2026-10-16T19:13:29Z" -> null
+      - principal_arn     = "arn:aws:iam::************:user/rudhar" -> null
+      - region            = "ap-south-1" -> null
+      - tags              = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all          = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - type              = "STANDARD" -> null
+      - user_name         = "arn:aws:iam::************:user/rudhar" -> null
+    }
+
+  # module.eks.aws_eks_access_policy_association.this["cluster_creator_admin"] will be destroyed
+  - resource "aws_eks_access_policy_association" "this" {
+      - associated_at = "2026-10-16 19:13:29.94 +0000 UTC" -> null
+      - cluster_name  = "carequeue-eks" -> null
+      - id            = "carequeue-eks#arn:aws:iam::************:user/rudhar#arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy" -> null
+      - modified_at   = "2026-10-16 19:13:29.94 +0000 UTC" -> null
+      - policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy" -> null
+      - principal_arn = "arn:aws:iam::************:user/rudhar" -> null
+      - region        = "ap-south-1" -> null
+
+      - access_scope {
+          - namespaces = [] -> null
+          - type       = "cluster" -> null
+        }
+    }
+
+  # module.eks.aws_eks_addon.before_compute["eks-pod-identity-agent"] will be destroyed
+  - resource "aws_eks_addon" "before_compute" {
+      - addon_name                  = "eks-pod-identity-agent" -> null
+      - addon_version               = "v1.4.0-eksbuild.4" -> null
+      - arn                         = "arn:aws:eks:ap-south-1:************:addon/carequeue-eks/eks-pod-identity-agent/cad0a311-1ac3-2a3c-ecc4-4917bcfffe7d" -> null
+      - cluster_name                = "carequeue-eks" -> null
+      - created_at                  = "2026-10-16T19:13:29Z" -> null
+      - id                          = "carequeue-eks:eks-pod-identity-agent" -> null
+      - modified_at                 = "2026-10-16T19:13:45Z" -> null
+      - preserve                    = true -> null
+      - region                      = "ap-south-1" -> null
+      - resolve_conflicts_on_create = "NONE" -> null
+      - resolve_conflicts_on_update = "OVERWRITE" -> null
+      - tags                        = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                    = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+
+      - namespace_config {
+          - namespace = "kube-system" -> null
+        }
+
+      - timeouts {}
+    }
+
+  # module.eks.aws_eks_addon.before_compute["vpc-cni"] will be destroyed
+  - resource "aws_eks_addon" "before_compute" {
+      - addon_name                  = "vpc-cni" -> null
+      - addon_version               = "v1.23.2-eksbuild.3" -> null
+      - arn                         = "arn:aws:eks:ap-south-1:************:addon/carequeue-eks/vpc-cni/aed0a311-1ac1-9764-410a-b2355ef25252" -> null
+      - cluster_name                = "carequeue-eks" -> null
+      - created_at                  = "2026-10-16T19:13:29Z" -> null
+      - id                          = "carequeue-eks:vpc-cni" -> null
+      - modified_at                 = "2026-10-16T19:13:37Z" -> null
+      - preserve                    = true -> null
+      - region                      = "ap-south-1" -> null
+      - resolve_conflicts_on_create = "NONE" -> null
+      - resolve_conflicts_on_update = "OVERWRITE" -> null
+      - tags                        = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                    = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+
+      - namespace_config {
+          - namespace = "kube-system" -> null
+        }
+
+      - timeouts {}
+    }
+
+  # module.eks.aws_eks_addon.this["aws-ebs-csi-driver"] will be destroyed
+  - resource "aws_eks_addon" "this" {
+      - addon_name                  = "aws-ebs-csi-driver" -> null
+      - addon_version               = "v1.67.0-eksbuild.1" -> null
+      - arn                         = "arn:aws:eks:ap-south-1:************:addon/carequeue-eks/aws-ebs-csi-driver/ecd0a317-cbc8-c64f-112d-e1b5801ae599" -> null
+      - cluster_name                = "carequeue-eks" -> null
+      - created_at                  = "2026-10-16T19:28:07Z" -> null
+      - id                          = "carequeue-eks:aws-ebs-csi-driver" -> null
+      - modified_at                 = "2026-10-16T19:28:38Z" -> null
+      - preserve                    = true -> null
+      - region                      = "ap-south-1" -> null
+      - resolve_conflicts_on_create = "NONE" -> null
+      - resolve_conflicts_on_update = "OVERWRITE" -> null
+      - tags                        = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                    = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+
+      - namespace_config {
+          - namespace = "kube-system" -> null
+        }
+
+      - pod_identity_association {
+          - role_arn        = "arn:aws:iam::************:role/carequeue-eks-ebs-csi" -> null
+          - service_account = "ebs-csi-controller-sa" -> null
+        }
+
+      - timeouts {}
+    }
+
+  # module.eks.aws_eks_addon.this["coredns"] will be destroyed
+  - resource "aws_eks_addon" "this" {
+      - addon_name                  = "coredns" -> null
+      - addon_version               = "v1.14.7-eksbuild.11" -> null
+      - arn                         = "arn:aws:eks:ap-south-1:************:addon/carequeue-eks/coredns/4ed0a317-cbcc-32e5-c6ea-2124c29ffe53" -> null
+      - cluster_name                = "carequeue-eks" -> null
+      - created_at                  = "2026-10-16T19:28:06Z" -> null
+      - id                          = "carequeue-eks:coredns" -> null
+      - modified_at                 = "2026-10-16T19:28:20Z" -> null
+      - preserve                    = true -> null
+      - region                      = "ap-south-1" -> null
+      - resolve_conflicts_on_create = "NONE" -> null
+      - resolve_conflicts_on_update = "OVERWRITE" -> null
+      - tags                        = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                    = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+
+      - namespace_config {
+          - namespace = "kube-system" -> null
+        }
+
+      - timeouts {}
+    }
+
+  # module.eks.aws_eks_addon.this["kube-proxy"] will be destroyed
+  - resource "aws_eks_addon" "this" {
+      - addon_name                  = "kube-proxy" -> null
+      - addon_version               = "v1.36.0-eksbuild.48" -> null
+      - arn                         = "arn:aws:eks:ap-south-1:************:addon/carequeue-eks/kube-proxy/d8d0a317-cbcf-c5ad-e1c3-5ed136ca238f" -> null
+      - cluster_name                = "carequeue-eks" -> null
+      - created_at                  = "2026-10-16T19:28:06Z" -> null
+      - id                          = "carequeue-eks:kube-proxy" -> null
+      - modified_at                 = "2026-10-16T19:28:23Z" -> null
+      - preserve                    = true -> null
+      - region                      = "ap-south-1" -> null
+      - resolve_conflicts_on_create = "NONE" -> null
+      - resolve_conflicts_on_update = "OVERWRITE" -> null
+      - tags                        = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                    = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+
+      - namespace_config {
+          - namespace = "kube-system" -> null
+        }
+
+      - timeouts {}
+    }
+
+  # module.eks.aws_eks_cluster.this[0] will be destroyed
+  - resource "aws_eks_cluster" "this" {
+      - arn                           = "arn:aws:eks:ap-south-1:************:cluster/carequeue-eks" -> null
+      - bootstrap_self_managed_addons = false -> null
+      - certificate_authority         = [
+          - {
+              - data = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURNVENDQWhtZ0F3SUJBZ0lRYUJ3SlZzU2c0YTY3Q1llU1JhSVlxakFOQmdrcWhraUc5dzBCQVFzRkFEQW4KTVJBd0RnWURWUVFLRXdkQlYxTWdSVXRUTVJNd0VRWURWUVFERXdwcmRXSmxjbTVsZEdWek1CNFhEVEkyTVRBeApOakU1TURReE9Gb1hEVE14TVRBeE5URTVNRFF4T0Zvd0p6RVFNQTRHQTFVRUNoTUhRVmRUSUVWTFV6RVRNQkVHCkExVUVBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUIKQUtYVmlNcit2YTVHR0dRNXhocVVBSkpLQm8wMXlCQi9MQkRyUmg2OXdBL1V0MWpvZk9QOTMvZGlNU1d1ZmhNbQowT0xSMnNiQzM5QVQrVUd1SkNyZ2lyV2JGTkxtQXhGZG5UajVlOXI5UnFTS2xqZ1g3T09BOHBTaEtGSkpMeERBCmR0QThDdUF3bkZrOTVZR2lvR3ZtOWY2VnVtaENndUt4NnJ4ejZSZ25JZE4vTGxoQlNYSERkZkVUckVXdnc0ZlUKc2cyUmN2azdWZVcwbXpHRHVtYVAwRDNndk1weEpESWFaU3M4QmtiYzROalNMODdKMkJ6bXdySGg2SzlKeWpxOQorQks3VHNaVWVYN1RDMzV1NTQyUUtoNmZmSWdHUy9XUjZQVTdIZys5Kys5KzNFV05DYzRVd0xVTnpVR3VMaGZlClNCZVVwemVPRTBlM2FQcGtHRlJzYWNFQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWQKRXdFQi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZMR3FnaGhlQzdNYmlQNzcrbnR5RzFOMHVkNGFNQlVHQTFVZApFUVFPTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBRXdUS3lWN3I3SkFFNTFqClhrK05OUmJwWGV2YVJjWE9lUUk3M2JFMGdRK0VJTHpwOElvdVpleXRXeGZBOFFBbko1MDJocjZWVHZOWEVMcTEKYk9ueXVQOGZJcGZKTzNmYkNiWlBBdXZha0lKNGdCeDVHbU5aQUEvODVnVlBGY1FuRlhvQkRNTkVpUFg2SkZPQwp6NEdhS3Bzb29SeDVTbXpuSGFXNkFzMTQ1VmQ2UXpxTENTQmh4OW9vVmJ1S1BuV2pGTzZqU3dwQTdHa1lvUDBSCllFczZNZm8vRm02RG1KNmY1aFZ0ekJzYWx0bEpsZzgwSXJyZmlrZHZhQ3g0Ny94dWV5RUtCTG0wYkJQZjZiYUwKa1kzUjZzMWxmNTRGQjNRK2ZpYk9Zc0pXaWlyTzF6aEpzcmtYcWVLeWN0OEJYS0o4c0JoVmo0ejM3ZzBGQSticgpXQWhYMzk0PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+            },
+        ] -> null
+      - created_at                    = "2026-10-16T19:04:06Z" -> null
+      - deletion_protection           = false -> null
+      - enabled_cluster_log_types     = [
+          - "api",
+          - "audit",
+          - "authenticator",
+          - "controllerManager",
+          - "scheduler",
+        ] -> null
+      - endpoint                      = "https://FCE9F71E944BF5922CA5E434B9D46889.gr7.ap-south-1.eks.amazonaws.com" -> null
+      - id                            = "carequeue-eks" -> null
+      - identity                      = [
+          - {
+              - oidc = [
+                  - {
+                      - issuer = "https://oidc.eks.ap-south-1.amazonaws.com/id/FCE9F71E944BF5922CA5E434B9D46889"
+                    },
+                ]
+            },
+        ] -> null
+      - name                          = "carequeue-eks" -> null
+      - platform_version              = "eks.14" -> null
+      - region                        = "ap-south-1" -> null
+      - role_arn                      = "arn:aws:iam::************:role/carequeue-eks-cluster-e708d513039d5faf0043a70931" -> null
+      - status                        = "ACTIVE" -> null
+      - tags                          = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                      = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - version                       = "1.36" -> null
+
+      - access_config {
+          - authentication_mode                         = "API" -> null
+          - bootstrap_cluster_creator_admin_permissions = false -> null
+        }
+
+      - compute_config {
+          - enabled       = false -> null
+          - node_pools    = [] -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      - control_plane_scaling_config {
+          - tier = "standard" -> null
+        }
+
+      - encryption_config {
+          - resources = [
+              - "secrets",
+            ] -> null
+
+          - provider {
+              - key_arn = "arn:aws:kms:ap-south-1:************:key/503fede8-b248-4225-b2f7-189a02be8099" -> null
+            }
+        }
+
+      - kube_api_server_config {
+          - event_ttl = "60m" -> null
+
+          - service_node_port_range {
+              - max_port = 32767 -> null
+              - min_port = 30000 -> null
+            }
+        }
+
+      - kube_controller_manager_config {
+          - horizontal_pod_autoscaler_controller_config {
+              - horizontal_pod_autoscaler_sync_period = "15s" -> null
+            }
+          - pod_gc_controller_config {
+              - terminated_pod_gc_threshold = 12500 -> null
+            }
+        }
+
+      - kube_scheduler_config {
+          - node_resources_fit {
+              - scoring_strategy {
+                  - type = "LeastAllocated" -> null
+
+                  - resource {
+                      - name   = "cpu" -> null
+                      - weight = 1 -> null
+                    }
+                  - resource {
+                      - name   = "memory" -> null
+                      - weight = 1 -> null
+                    }
+                }
+            }
+        }
+
+      - kubernetes_network_config {
+          - ip_family         = "ipv4" -> null
+          - service_ipv4_cidr = "172.20.0.0/16" -> null
+            # (1 unchanged attribute hidden)
+
+          - elastic_load_balancing {
+              - enabled = false -> null
+            }
+        }
+
+      - storage_config {
+          - block_storage {
+              - enabled = false -> null
+            }
+        }
+
+      - upgrade_policy {
+          - support_type = "EXTENDED" -> null
+        }
+
+      - vpc_config {
+          - cluster_security_group_id = "sg-0a524b282a30c89cf" -> null
+          - control_plane_egress_mode = "AWS_MANAGED" -> null
+          - endpoint_private_access   = true -> null
+          - endpoint_public_access    = true -> null
+          - public_access_cidrs       = [
+              - "0.0.0.0/0",
+            ] -> null
+          - security_group_ids        = [
+              - "sg-0215d14ad1f77131a",
+            ] -> null
+          - subnet_ids                = [
+              - "subnet-093957180ba5e66f7",
+              - "subnet-0fe85b8f1bd096bae",
+            ] -> null
+          - vpc_id                    = "vpc-0bfb04165b05468c1" -> null
+        }
+    }
+
+  # module.eks.aws_iam_policy.cluster_encryption[0] will be destroyed
+  - resource "aws_iam_policy" "cluster_encryption" {
+      - arn              = "arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23" -> null
+      - attachment_count = 1 -> null
+      - description      = "Cluster encryption policy to allow cluster role to utilize CMK provided" -> null
+      - id               = "arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23" -> null
+      - name             = "carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23" -> null
+      - name_prefix      = "carequeue-eks-cluster-ClusterEncryption" -> null
+      - path             = "/" -> null
+      - policy           = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = [
+                          - "kms:Encrypt",
+                          - "kms:Decrypt",
+                          - "kms:ListGrants",
+                          - "kms:DescribeKey",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:kms:ap-south-1:************:key/503fede8-b248-4225-b2f7-189a02be8099"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - policy_id        = "ANPAUHP2HWAUSEBPLV5ZL" -> null
+      - tags             = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all         = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+    }
+
+  # module.eks.aws_iam_role.this[0] will be destroyed
+  - resource "aws_iam_role" "this" {
+      - arn                   = "arn:aws:iam::************:role/carequeue-eks-cluster-e708d513039d5faf0043a70931" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = [
+                          - "sts:TagSession",
+                          - "sts:AssumeRole",
+                        ]
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "eks.amazonaws.com"
+                        }
+                      - Sid       = "EKSClusterAssumeRole"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-16T19:03:43Z" -> null
+      - force_detach_policies = true -> null
+      - id                    = "carequeue-eks-cluster-e708d513039d5faf0043a70931" -> null
+      - managed_policy_arns   = [
+          - "arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23",
+          - "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+        ] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "carequeue-eks-cluster-e708d513039d5faf0043a70931" -> null
+      - name_prefix           = "carequeue-eks-cluster-" -> null
+      - path                  = "/" -> null
+      - tags                  = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all              = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - unique_id             = "AROAUHP2HWAU7EEALOUO6" -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.eks.aws_iam_role_policy_attachment.cluster_encryption[0] will be destroyed
+  - resource "aws_iam_role_policy_attachment" "cluster_encryption" {
+      - id         = "carequeue-eks-cluster-e708d513039d5faf0043a70931/arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23" -> null
+      - policy_arn = "arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23" -> null
+      - role       = "carequeue-eks-cluster-e708d513039d5faf0043a70931" -> null
+    }
+
+  # module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"] will be destroyed
+  - resource "aws_iam_role_policy_attachment" "this" {
+      - id         = "carequeue-eks-cluster-e708d513039d5faf0043a70931/arn:aws:iam::aws:policy/AmazonEKSClusterPolicy" -> null
+      - policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy" -> null
+      - role       = "carequeue-eks-cluster-e708d513039d5faf0043a70931" -> null
+    }
+
+  # module.eks.aws_security_group.cluster[0] will be destroyed
+  - resource "aws_security_group" "cluster" {
+      - arn                    = "arn:aws:ec2:ap-south-1:************:security-group/sg-0215d14ad1f77131a" -> null
+      - description            = "EKS cluster security group" -> null
+      - egress                 = [] -> null
+      - id                     = "sg-0215d14ad1f77131a" -> null
+      - ingress                = [
+          - {
+              - cidr_blocks      = []
+              - description      = "Node groups to cluster API"
+              - from_port        = 443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-056861ffeffaa1b70",
+                ]
+              - self             = false
+              - to_port          = 443
+            },
+        ] -> null
+      - name                   = "carequeue-eks-cluster-7b3b0a53599d1f2e218a9a449f" -> null
+      - name_prefix            = "carequeue-eks-cluster-" -> null
+      - owner_id               = "************" -> null
+      - region                 = "ap-south-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-cluster"
+        } -> null
+      - tags_all               = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-cluster"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - vpc_id                 = "vpc-0bfb04165b05468c1" -> null
+    }
+
+  # module.eks.aws_security_group.node[0] will be destroyed
+  - resource "aws_security_group" "node" {
+      - arn                    = "arn:aws:ec2:ap-south-1:************:security-group/sg-056861ffeffaa1b70" -> null
+      - description            = "EKS node shared security group" -> null
+      - egress                 = [
+          - {
+              - cidr_blocks      = [
+                  - "0.0.0.0/0",
+                ]
+              - description      = "Allow all egress"
+              - from_port        = 0
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "-1"
+              - security_groups  = []
+              - self             = false
+              - to_port          = 0
+            },
+        ] -> null
+      - id                     = "sg-056861ffeffaa1b70" -> null
+      - ingress                = [
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node 10251/tcp webhook"
+              - from_port        = 10251
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 10251
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node 4443/tcp webhook"
+              - from_port        = 4443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 4443
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node 6443/tcp webhook"
+              - from_port        = 6443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 6443
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node 8443/tcp webhook"
+              - from_port        = 8443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 8443
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node 9443/tcp webhook"
+              - from_port        = 9443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 9443
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node groups"
+              - from_port        = 443
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 443
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Cluster API to node kubelets"
+              - from_port        = 10250
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = [
+                  - "sg-0215d14ad1f77131a",
+                ]
+              - self             = false
+              - to_port          = 10250
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Node to node CoreDNS UDP"
+              - from_port        = 53
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "udp"
+              - security_groups  = []
+              - self             = true
+              - to_port          = 53
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Node to node CoreDNS"
+              - from_port        = 53
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = []
+              - self             = true
+              - to_port          = 53
+            },
+          - {
+              - cidr_blocks      = []
+              - description      = "Node to node ingress on ephemeral ports"
+              - from_port        = 1025
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = []
+              - self             = true
+              - to_port          = 65535
+            },
+        ] -> null
+      - name                   = "carequeue-eks-node-0493fb4f8a9b1460e5a10e527a" -> null
+      - name_prefix            = "carequeue-eks-node-" -> null
+      - owner_id               = "************" -> null
+      - region                 = "ap-south-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {
+          - "Cluster"                             = "carequeue-eks"
+          - "Name"                                = "carequeue-eks-node"
+          - "kubernetes.io/cluster/carequeue-eks" = "owned"
+        } -> null
+      - tags_all               = {
+          - "Cluster"                             = "carequeue-eks"
+          - "ManagedBy"                           = "Terraform"
+          - "Name"                                = "carequeue-eks-node"
+          - "Owner"                               = "rudhar07"
+          - "Project"                             = "CareQueue"
+          - "kubernetes.io/cluster/carequeue-eks" = "owned"
+        } -> null
+      - vpc_id                 = "vpc-0bfb04165b05468c1" -> null
+    }
+
+  # module.eks.aws_security_group_rule.cluster["ingress_nodes_443"] will be destroyed
+  - resource "aws_security_group_rule" "cluster" {
+      - description              = "Node groups to cluster API" -> null
+      - from_port                = 443 -> null
+      - id                       = "sgrule-1862539929" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-0215d14ad1f77131a" -> null
+      - security_group_rule_id   = "sgr-06cc01bccaf83eb8f" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-056861ffeffaa1b70" -> null
+      - to_port                  = 443 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["egress_all"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - cidr_blocks            = [
+          - "0.0.0.0/0",
+        ] -> null
+      - description            = "Allow all egress" -> null
+      - from_port              = 0 -> null
+      - id                     = "sgrule-1964076610" -> null
+      - protocol               = "-1" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id = "sgr-0c90942f48c56191f" -> null
+      - self                   = false -> null
+      - to_port                = 0 -> null
+      - type                   = "egress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_10251_webhook"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node 10251/tcp webhook" -> null
+      - from_port                = 10251 -> null
+      - id                       = "sgrule-413523112" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-0b214b6a1ec47cc37" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 10251 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_443"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node groups" -> null
+      - from_port                = 443 -> null
+      - id                       = "sgrule-1193670687" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-090146f187b759205" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 443 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node 4443/tcp webhook" -> null
+      - from_port                = 4443 -> null
+      - id                       = "sgrule-2491024304" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-00cdbc5f90468ff04" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 4443 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node 6443/tcp webhook" -> null
+      - from_port                = 6443 -> null
+      - id                       = "sgrule-1563976742" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-0be35eda1dfb826c0" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 6443 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node 8443/tcp webhook" -> null
+      - from_port                = 8443 -> null
+      - id                       = "sgrule-1315198983" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-0da6862425bb67cc4" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 8443 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node 9443/tcp webhook" -> null
+      - from_port                = 9443 -> null
+      - id                       = "sgrule-717581260" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-029c7ba9d03a58c12" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 9443 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_cluster_kubelet"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description              = "Cluster API to node kubelets" -> null
+      - from_port                = 10250 -> null
+      - id                       = "sgrule-753700051" -> null
+      - protocol                 = "tcp" -> null
+      - region                   = "ap-south-1" -> null
+      - security_group_id        = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id   = "sgr-0cbdfa5a468108132" -> null
+      - self                     = false -> null
+      - source_security_group_id = "sg-0215d14ad1f77131a" -> null
+      - to_port                  = 10250 -> null
+      - type                     = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description            = "Node to node ingress on ephemeral ports" -> null
+      - from_port              = 1025 -> null
+      - id                     = "sgrule-2996118358" -> null
+      - protocol               = "tcp" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id = "sgr-064fbc8aec100ef14" -> null
+      - self                   = true -> null
+      - to_port                = 65535 -> null
+      - type                   = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description            = "Node to node CoreDNS" -> null
+      - from_port              = 53 -> null
+      - id                     = "sgrule-4123947568" -> null
+      - protocol               = "tcp" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id = "sgr-07adf0bf2c2d267b7" -> null
+      - self                   = true -> null
+      - to_port                = 53 -> null
+      - type                   = "ingress" -> null
+    }
+
+  # module.eks.aws_security_group_rule.node["ingress_self_coredns_udp"] will be destroyed
+  - resource "aws_security_group_rule" "node" {
+      - description            = "Node to node CoreDNS UDP" -> null
+      - from_port              = 53 -> null
+      - id                     = "sgrule-1368510943" -> null
+      - protocol               = "udp" -> null
+      - region                 = "ap-south-1" -> null
+      - security_group_id      = "sg-056861ffeffaa1b70" -> null
+      - security_group_rule_id = "sgr-0e322bec71c257dd5" -> null
+      - self                   = true -> null
+      - to_port                = 53 -> null
+      - type                   = "ingress" -> null
+    }
+
+  # module.eks.time_sleep.this[0] will be destroyed
+  - resource "time_sleep" "this" {
+      - create_duration = "30s" -> null
+      - id              = "2026-10-16T19:13:59Z" -> null
+      - triggers        = {
+          - "certificate_authority_data" = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURNVENDQWhtZ0F3SUJBZ0lRYUJ3SlZzU2c0YTY3Q1llU1JhSVlxakFOQmdrcWhraUc5dzBCQVFzRkFEQW4KTVJBd0RnWURWUVFLRXdkQlYxTWdSVXRUTVJNd0VRWURWUVFERXdwcmRXSmxjbTVsZEdWek1CNFhEVEkyTVRBeApOakU1TURReE9Gb1hEVE14TVRBeE5URTVNRFF4T0Zvd0p6RVFNQTRHQTFVRUNoTUhRVmRUSUVWTFV6RVRNQkVHCkExVUVBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUIKQUtYVmlNcit2YTVHR0dRNXhocVVBSkpLQm8wMXlCQi9MQkRyUmg2OXdBL1V0MWpvZk9QOTMvZGlNU1d1ZmhNbQowT0xSMnNiQzM5QVQrVUd1SkNyZ2lyV2JGTkxtQXhGZG5UajVlOXI5UnFTS2xqZ1g3T09BOHBTaEtGSkpMeERBCmR0QThDdUF3bkZrOTVZR2lvR3ZtOWY2VnVtaENndUt4NnJ4ejZSZ25JZE4vTGxoQlNYSERkZkVUckVXdnc0ZlUKc2cyUmN2azdWZVcwbXpHRHVtYVAwRDNndk1weEpESWFaU3M4QmtiYzROalNMODdKMkJ6bXdySGg2SzlKeWpxOQorQks3VHNaVWVYN1RDMzV1NTQyUUtoNmZmSWdHUy9XUjZQVTdIZys5Kys5KzNFV05DYzRVd0xVTnpVR3VMaGZlClNCZVVwemVPRTBlM2FQcGtHRlJzYWNFQ0F3RUFBYU5aTUZjd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWQKRXdFQi93UUZNQU1CQWY4d0hRWURWUjBPQkJZRUZMR3FnaGhlQzdNYmlQNzcrbnR5RzFOMHVkNGFNQlVHQTFVZApFUVFPTUF5Q0NtdDFZbVZ5Ym1WMFpYTXdEUVlKS29aSWh2Y05BUUVMQlFBRGdnRUJBRXdUS3lWN3I3SkFFNTFqClhrK05OUmJwWGV2YVJjWE9lUUk3M2JFMGdRK0VJTHpwOElvdVpleXRXeGZBOFFBbko1MDJocjZWVHZOWEVMcTEKYk9ueXVQOGZJcGZKTzNmYkNiWlBBdXZha0lKNGdCeDVHbU5aQUEvODVnVlBGY1FuRlhvQkRNTkVpUFg2SkZPQwp6NEdhS3Bzb29SeDVTbXpuSGFXNkFzMTQ1VmQ2UXpxTENTQmh4OW9vVmJ1S1BuV2pGTzZqU3dwQTdHa1lvUDBSCllFczZNZm8vRm02RG1KNmY1aFZ0ekJzYWx0bEpsZzgwSXJyZmlrZHZhQ3g0Ny94dWV5RUtCTG0wYkJQZjZiYUwKa1kzUjZzMWxmNTRGQjNRK2ZpYk9Zc0pXaWlyTzF6aEpzcmtYcWVLeWN0OEJYS0o4c0JoVmo0ejM3ZzBGQSticgpXQWhYMzk0PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+          - "endpoint"                   = "https://FCE9F71E944BF5922CA5E434B9D46889.gr7.ap-south-1.eks.amazonaws.com"
+          - "kubernetes_version"         = "1.36"
+          - "name"                       = "carequeue-eks"
+          - "service_cidr"               = "172.20.0.0/16"
+        } -> null
+    }
+
+  # module.vpc.aws_default_network_acl.this[0] will be destroyed
+  - resource "aws_default_network_acl" "this" {
+      - arn                    = "arn:aws:ec2:ap-south-1:************:network-acl/acl-0f6050dd9679fb869" -> null
+      - default_network_acl_id = "acl-0f6050dd9679fb869" -> null
+      - id                     = "acl-0f6050dd9679fb869" -> null
+      - owner_id               = "************" -> null
+      - region                 = "ap-south-1" -> null
+      - subnet_ids             = [
+          - "subnet-093957180ba5e66f7",
+          - "subnet-0fe85b8f1bd096bae",
+        ] -> null
+      - tags                   = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-vpc-default"
+        } -> null
+      - tags_all               = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-vpc-default"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - vpc_id                 = "vpc-0bfb04165b05468c1" -> null
+
+      - egress {
+          - action          = "allow" -> null
+          - from_port       = 0 -> null
+          - icmp_code       = 0 -> null
+          - icmp_type       = 0 -> null
+          - ipv6_cidr_block = "::/0" -> null
+          - protocol        = "-1" -> null
+          - rule_no         = 101 -> null
+          - to_port         = 0 -> null
+            # (1 unchanged attribute hidden)
+        }
+      - egress {
+          - action          = "allow" -> null
+          - cidr_block      = "0.0.0.0/0" -> null
+          - from_port       = 0 -> null
+          - icmp_code       = 0 -> null
+          - icmp_type       = 0 -> null
+          - protocol        = "-1" -> null
+          - rule_no         = 100 -> null
+          - to_port         = 0 -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      - ingress {
+          - action          = "allow" -> null
+          - from_port       = 0 -> null
+          - icmp_code       = 0 -> null
+          - icmp_type       = 0 -> null
+          - ipv6_cidr_block = "::/0" -> null
+          - protocol        = "-1" -> null
+          - rule_no         = 101 -> null
+          - to_port         = 0 -> null
+            # (1 unchanged attribute hidden)
+        }
+      - ingress {
+          - action          = "allow" -> null
+          - cidr_block      = "0.0.0.0/0" -> null
+          - from_port       = 0 -> null
+          - icmp_code       = 0 -> null
+          - icmp_type       = 0 -> null
+          - protocol        = "-1" -> null
+          - rule_no         = 100 -> null
+          - to_port         = 0 -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # module.vpc.aws_default_route_table.default[0] will be destroyed
+  - resource "aws_default_route_table" "default" {
+      - arn                    = "arn:aws:ec2:ap-south-1:************:route-table/rtb-04a616c4517618265" -> null
+      - default_route_table_id = "rtb-04a616c4517618265" -> null
+      - id                     = "rtb-04a616c4517618265" -> null
+      - owner_id               = "************" -> null
+      - propagating_vgws       = [] -> null
+      - region                 = "ap-south-1" -> null
+      - route                  = [] -> null
+      - tags                   = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-vpc-default"
+        } -> null
+      - tags_all               = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-vpc-default"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - vpc_id                 = "vpc-0bfb04165b05468c1" -> null
+
+      - timeouts {
+          - create = "5m" -> null
+          - update = "5m" -> null
+        }
+    }
+
+  # module.vpc.aws_default_security_group.this[0] will be destroyed
+  - resource "aws_default_security_group" "this" {
+      - arn                    = "arn:aws:ec2:ap-south-1:************:security-group/sg-07cc42ef2012bb510" -> null
+      - description            = "default VPC security group" -> null
+      - egress                 = [] -> null
+      - id                     = "sg-07cc42ef2012bb510" -> null
+      - ingress                = [] -> null
+      - name                   = "default" -> null
+      - owner_id               = "************" -> null
+      - region                 = "ap-south-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-vpc-default"
+        } -> null
+      - tags_all               = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-vpc-default"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - vpc_id                 = "vpc-0bfb04165b05468c1" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.vpc.aws_internet_gateway.this[0] will be destroyed
+  - resource "aws_internet_gateway" "this" {
+      - arn      = "arn:aws:ec2:ap-south-1:************:internet-gateway/igw-08589c27afbe0d8d2" -> null
+      - id       = "igw-08589c27afbe0d8d2" -> null
+      - owner_id = "************" -> null
+      - region   = "ap-south-1" -> null
+      - tags     = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-vpc"
+        } -> null
+      - tags_all = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-vpc"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - vpc_id   = "vpc-0bfb04165b05468c1" -> null
+    }
+
+  # module.vpc.aws_route.public_internet_gateway[0] will be destroyed
+  - resource "aws_route" "public_internet_gateway" {
+      - destination_cidr_block      = "0.0.0.0/0" -> null
+      - gateway_id                  = "igw-08589c27afbe0d8d2" -> null
+      - id                          = "r-rtb-0d13707ff3ef496eb1080289494" -> null
+      - origin                      = "CreateRoute" -> null
+      - region                      = "ap-south-1" -> null
+      - route_table_id              = "rtb-0d13707ff3ef496eb" -> null
+      - state                       = "active" -> null
+        # (14 unchanged attributes hidden)
+
+      - timeouts {
+          - create = "5m" -> null
+        }
+    }
+
+  # module.vpc.aws_route_table.public[0] will be destroyed
+  - resource "aws_route_table" "public" {
+      - arn              = "arn:aws:ec2:ap-south-1:************:route-table/rtb-0d13707ff3ef496eb" -> null
+      - id               = "rtb-0d13707ff3ef496eb" -> null
+      - owner_id         = "************" -> null
+      - propagating_vgws = [] -> null
+      - region           = "ap-south-1" -> null
+      - route            = [
+          - {
+              - cidr_block                 = "0.0.0.0/0"
+              - gateway_id                 = "igw-08589c27afbe0d8d2"
+                # (12 unchanged attributes hidden)
+            },
+        ] -> null
+      - tags             = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-vpc-public"
+        } -> null
+      - tags_all         = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-vpc-public"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - vpc_id           = "vpc-0bfb04165b05468c1" -> null
+    }
+
+  # module.vpc.aws_route_table_association.public[0] will be destroyed
+  - resource "aws_route_table_association" "public" {
+      - id             = "rtbassoc-03ae311a853766cd6" -> null
+      - region         = "ap-south-1" -> null
+      - route_table_id = "rtb-0d13707ff3ef496eb" -> null
+      - subnet_id      = "subnet-0fe85b8f1bd096bae" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.vpc.aws_route_table_association.public[1] will be destroyed
+  - resource "aws_route_table_association" "public" {
+      - id             = "rtbassoc-0a033b9c6a8a8eb6e" -> null
+      - region         = "ap-south-1" -> null
+      - route_table_id = "rtb-0d13707ff3ef496eb" -> null
+      - subnet_id      = "subnet-093957180ba5e66f7" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.vpc.aws_subnet.public[0] will be destroyed
+  - resource "aws_subnet" "public" {
+      - arn                                            = "arn:aws:ec2:ap-south-1:************:subnet/subnet-0fe85b8f1bd096bae" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "ap-south-1a" -> null
+      - availability_zone_id                           = "aps1-az1" -> null
+      - cidr_block                                     = "10.0.0.0/20" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-0fe85b8f1bd096bae" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = true -> null
+      - owner_id                                       = "************" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "ap-south-1" -> null
+      - tags                                           = {
+          - "Cluster"                = "carequeue-eks"
+          - "Name"                   = "carequeue-eks-vpc-public-ap-south-1a"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - tags_all                                       = {
+          - "Cluster"                = "carequeue-eks"
+          - "ManagedBy"              = "Terraform"
+          - "Name"                   = "carequeue-eks-vpc-public-ap-south-1a"
+          - "Owner"                  = "rudhar07"
+          - "Project"                = "CareQueue"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - vpc_id                                         = "vpc-0bfb04165b05468c1" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.vpc.aws_subnet.public[1] will be destroyed
+  - resource "aws_subnet" "public" {
+      - arn                                            = "arn:aws:ec2:ap-south-1:************:subnet/subnet-093957180ba5e66f7" -> null
+      - assign_ipv6_address_on_creation                = false -> null
+      - availability_zone                              = "ap-south-1b" -> null
+      - availability_zone_id                           = "aps1-az3" -> null
+      - cidr_block                                     = "10.0.16.0/20" -> null
+      - enable_dns64                                   = false -> null
+      - enable_lni_at_device_index                     = 0 -> null
+      - enable_resource_name_dns_a_record_on_launch    = false -> null
+      - enable_resource_name_dns_aaaa_record_on_launch = false -> null
+      - id                                             = "subnet-093957180ba5e66f7" -> null
+      - ipv6_native                                    = false -> null
+      - map_customer_owned_ip_on_launch                = false -> null
+      - map_public_ip_on_launch                        = true -> null
+      - owner_id                                       = "************" -> null
+      - private_dns_hostname_type_on_launch            = "ip-name" -> null
+      - region                                         = "ap-south-1" -> null
+      - tags                                           = {
+          - "Cluster"                = "carequeue-eks"
+          - "Name"                   = "carequeue-eks-vpc-public-ap-south-1b"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - tags_all                                       = {
+          - "Cluster"                = "carequeue-eks"
+          - "ManagedBy"              = "Terraform"
+          - "Name"                   = "carequeue-eks-vpc-public-ap-south-1b"
+          - "Owner"                  = "rudhar07"
+          - "Project"                = "CareQueue"
+          - "kubernetes.io/role/elb" = "1"
+        } -> null
+      - vpc_id                                         = "vpc-0bfb04165b05468c1" -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.vpc.aws_vpc.this[0] will be destroyed
+  - resource "aws_vpc" "this" {
+      - arn                                  = "arn:aws:ec2:ap-south-1:************:vpc/vpc-0bfb04165b05468c1" -> null
+      - assign_generated_ipv6_cidr_block     = false -> null
+      - cidr_block                           = "10.0.0.0/16" -> null
+      - default_network_acl_id               = "acl-0f6050dd9679fb869" -> null
+      - default_route_table_id               = "rtb-04a616c4517618265" -> null
+      - default_security_group_id            = "sg-07cc42ef2012bb510" -> null
+      - dhcp_options_id                      = "dopt-0c1352d9b4f2f8bb0" -> null
+      - enable_dns_hostnames                 = true -> null
+      - enable_dns_support                   = true -> null
+      - enable_network_address_usage_metrics = false -> null
+      - id                                   = "vpc-0bfb04165b05468c1" -> null
+      - instance_tenancy                     = "default" -> null
+      - ipv6_netmask_length                  = 0 -> null
+      - main_route_table_id                  = "rtb-04a616c4517618265" -> null
+      - owner_id                             = "************" -> null
+      - region                               = "ap-south-1" -> null
+      - tags                                 = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-vpc"
+        } -> null
+      - tags_all                             = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-vpc"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0] will be destroyed
+  - resource "aws_eks_node_group" "this" {
+      - ami_type               = "AL2023_x86_64_STANDARD" -> null
+      - arn                    = "arn:aws:eks:ap-south-1:************:nodegroup/carequeue-eks/carequeue-eks-ng-02843d9ae24bf2b43b99ae0640/b6d0a317-3378-ee15-d1ad-133542e94535" -> null
+      - capacity_type          = "ON_DEMAND" -> null
+      - cluster_name           = "carequeue-eks" -> null
+      - disk_size              = 0 -> null
+      - id                     = "carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640" -> null
+      - instance_types         = [
+          - "m7i-flex.large",
+        ] -> null
+      - labels                 = {
+          - "carequeue/pool" = "default"
+        } -> null
+      - node_group_name        = "carequeue-eks-ng-02843d9ae24bf2b43b99ae0640" -> null
+      - node_group_name_prefix = "carequeue-eks-ng-" -> null
+      - node_role_arn          = "arn:aws:iam::************:role/carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+      - region                 = "ap-south-1" -> null
+      - release_version        = "1.36.4-20261012" -> null
+      - resources              = [
+          - {
+              - autoscaling_groups              = [
+                  - {
+                      - name = "eks-carequeue-eks-ng-02843d9ae24bf2b43b99ae0640-b6d0a317-3378-ee15-d1ad-133542e94535"
+                    },
+                ]
+                # (1 unchanged attribute hidden)
+            },
+        ] -> null
+      - status                 = "ACTIVE" -> null
+      - subnet_ids             = [
+          - "subnet-093957180ba5e66f7",
+          - "subnet-0fe85b8f1bd096bae",
+        ] -> null
+      - tags                   = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-ng"
+        } -> null
+      - tags_all               = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-ng"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - version                = "1.36" -> null
+
+      - launch_template {
+          - id      = "lt-06389149ce1439994" -> null
+          - name    = "default-02bc8695fbb0edd314b537e0ad" -> null
+          - version = "1" -> null
+        }
+
+      - scaling_config {
+          - desired_size = 2 -> null
+          - max_size     = 3 -> null
+          - min_size     = 1 -> null
+        }
+
+      - update_config {
+          - max_unavailable            = 0 -> null
+          - max_unavailable_percentage = 33 -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0] (deposed object d9a739b8) will be destroyed
+  # (left over from a partially-failed replacement of this instance)
+  - resource "aws_eks_node_group" "this" {
+      - ami_type               = "AL2023_x86_64_STANDARD" -> null
+      - arn                    = "arn:aws:eks:ap-south-1:************:nodegroup/carequeue-eks/carequeue-eks-ng-77026d4e05d0ceb5561ea00833/90d0a311-6057-bad5-8a50-00aa4096884b" -> null
+      - capacity_type          = "ON_DEMAND" -> null
+      - cluster_name           = "carequeue-eks" -> null
+      - disk_size              = 0 -> null
+      - id                     = "carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833" -> null
+      - instance_types         = [
+          - "t3.medium",
+        ] -> null
+      - labels                 = {
+          - "carequeue/pool" = "default"
+        } -> null
+      - node_group_name        = "carequeue-eks-ng-77026d4e05d0ceb5561ea00833" -> null
+      - node_group_name_prefix = "carequeue-eks-ng-" -> null
+      - node_role_arn          = "arn:aws:iam::************:role/carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+      - region                 = "ap-south-1" -> null
+      - release_version        = "1.36.4-20261012" -> null
+      - resources              = [] -> null
+      - status                 = "DELETING" -> null
+      - subnet_ids             = [
+          - "subnet-093957180ba5e66f7",
+          - "subnet-0fe85b8f1bd096bae",
+        ] -> null
+      - tags                   = {
+          - "Cluster" = "carequeue-eks"
+          - "Name"    = "carequeue-eks-ng"
+        } -> null
+      - tags_all               = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Name"      = "carequeue-eks-ng"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - version                = "1.36" -> null
+
+      - launch_template {
+          - id      = "lt-06389149ce1439994" -> null
+          - name    = "default-02bc8695fbb0edd314b537e0ad" -> null
+          - version = "1" -> null
+        }
+
+      - scaling_config {
+          - desired_size = 2 -> null
+          - max_size     = 3 -> null
+          - min_size     = 1 -> null
+        }
+
+      - update_config {
+          - max_unavailable            = 0 -> null
+          - max_unavailable_percentage = 33 -> null
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_iam_role.this[0] will be destroyed
+  - resource "aws_iam_role" "this" {
+      - arn                   = "arn:aws:iam::************:role/carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "ec2.amazonaws.com"
+                        }
+                      - Sid       = "EKSNodeAssumeRole"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-16T19:03:57Z" -> null
+      - description           = "EKS managed node group IAM role" -> null
+      - force_detach_policies = true -> null
+      - id                    = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+      - managed_policy_arns   = [
+          - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+          - "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+          - "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+        ] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+      - name_prefix           = "carequeue-eks-ng-eks-node-group-" -> null
+      - path                  = "/" -> null
+      - tags                  = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all              = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - unique_id             = "AROAUHP2HWAUQTJE46SRY" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"] will be destroyed
+  - resource "aws_iam_role_policy_attachment" "this" {
+      - id         = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly" -> null
+      - policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly" -> null
+      - role       = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"] will be destroyed
+  - resource "aws_iam_role_policy_attachment" "this" {
+      - id         = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy" -> null
+      - policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy" -> null
+      - role       = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"] will be destroyed
+  - resource "aws_iam_role_policy_attachment" "this" {
+      - id         = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy" -> null
+      - policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy" -> null
+      - role       = "carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3" -> null
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].aws_launch_template.this[0] will be destroyed
+  - resource "aws_launch_template" "this" {
+      - arn                                  = "arn:aws:ec2:ap-south-1:************:launch-template/lt-06389149ce1439994" -> null
+      - default_version                      = 1 -> null
+      - description                          = "Custom launch template for carequeue-eks-ng EKS managed node group" -> null
+      - disable_api_stop                     = false -> null
+      - disable_api_termination              = false -> null
+      - id                                   = "lt-06389149ce1439994" -> null
+      - latest_version                       = 1 -> null
+      - name                                 = "default-02bc8695fbb0edd314b537e0ad" -> null
+      - name_prefix                          = "default-" -> null
+      - region                               = "ap-south-1" -> null
+      - security_group_names                 = [] -> null
+      - tags                                 = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                             = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+      - update_default_version               = true -> null
+      - vpc_security_group_ids               = [
+          - "sg-056861ffeffaa1b70",
+        ] -> null
+        # (8 unchanged attributes hidden)
+
+      - block_device_mappings {
+          - device_name  = "/dev/xvda" -> null
+            # (2 unchanged attributes hidden)
+
+          - ebs {
+              - delete_on_termination      = "true" -> null
+              - encrypted                  = "true" -> null
+              - iops                       = 0 -> null
+              - throughput                 = 0 -> null
+              - volume_initialization_rate = 0 -> null
+              - volume_size                = 20 -> null
+              - volume_type                = "gp3" -> null
+                # (2 unchanged attributes hidden)
+            }
+        }
+
+      - metadata_options {
+          - http_endpoint               = "enabled" -> null
+          - http_put_response_hop_limit = 1 -> null
+          - http_tokens                 = "required" -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - tag_specifications {
+          - resource_type = "instance" -> null
+          - tags          = {
+              - "Cluster" = "carequeue-eks"
+              - "Name"    = "carequeue-eks-ng"
+            } -> null
+        }
+      - tag_specifications {
+          - resource_type = "network-interface" -> null
+          - tags          = {
+              - "Cluster" = "carequeue-eks"
+              - "Name"    = "carequeue-eks-ng"
+            } -> null
+        }
+      - tag_specifications {
+          - resource_type = "volume" -> null
+          - tags          = {
+              - "Cluster" = "carequeue-eks"
+              - "Name"    = "carequeue-eks-ng"
+            } -> null
+        }
+    }
+
+  # module.eks.module.kms.aws_kms_alias.this["cluster"] will be destroyed
+  - resource "aws_kms_alias" "this" {
+      - arn            = "arn:aws:kms:ap-south-1:************:alias/eks/carequeue-eks" -> null
+      - id             = "alias/eks/carequeue-eks" -> null
+      - name           = "alias/eks/carequeue-eks" -> null
+      - region         = "ap-south-1" -> null
+      - target_key_arn = "arn:aws:kms:ap-south-1:************:key/503fede8-b248-4225-b2f7-189a02be8099" -> null
+      - target_key_id  = "503fede8-b248-4225-b2f7-189a02be8099" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.eks.module.kms.aws_kms_key.this[0] will be destroyed
+  - resource "aws_kms_key" "this" {
+      - arn                                = "arn:aws:kms:ap-south-1:************:key/503fede8-b248-4225-b2f7-189a02be8099" -> null
+      - bypass_policy_lockout_safety_check = false -> null
+      - customer_master_key_spec           = "SYMMETRIC_DEFAULT" -> null
+      - deletion_window_in_days            = 7 -> null
+      - description                        = "carequeue-eks cluster encryption key" -> null
+      - enable_key_rotation                = true -> null
+      - id                                 = "503fede8-b248-4225-b2f7-189a02be8099" -> null
+      - is_enabled                         = true -> null
+      - key_id                             = "503fede8-b248-4225-b2f7-189a02be8099" -> null
+      - key_usage                          = "ENCRYPT_DECRYPT" -> null
+      - multi_region                       = false -> null
+      - policy                             = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "kms:*"
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::************:root"
+                        }
+                      - Resource  = "*"
+                      - Sid       = "Default"
+                    },
+                  - {
+                      - Action    = [
+                          - "kms:Update*",
+                          - "kms:UntagResource",
+                          - "kms:TagResource",
+                          - "kms:ScheduleKeyDeletion",
+                          - "kms:Revoke*",
+                          - "kms:ReplicateKey",
+                          - "kms:Put*",
+                          - "kms:List*",
+                          - "kms:ImportKeyMaterial",
+                          - "kms:Get*",
+                          - "kms:Enable*",
+                          - "kms:Disable*",
+                          - "kms:Describe*",
+                          - "kms:Delete*",
+                          - "kms:Create*",
+                          - "kms:CancelKeyDeletion",
+                        ]
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::************:user/rudhar"
+                        }
+                      - Resource  = "*"
+                      - Sid       = "KeyAdministration"
+                    },
+                  - {
+                      - Action    = [
+                          - "kms:ReEncrypt*",
+                          - "kms:GenerateDataKey*",
+                          - "kms:Encrypt",
+                          - "kms:DescribeKey",
+                          - "kms:Decrypt",
+                        ]
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::************:role/carequeue-eks-cluster-e708d513039d5faf0043a70931"
+                        }
+                      - Resource  = "*"
+                      - Sid       = "KeyUsage"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - region                             = "ap-south-1" -> null
+      - rotation_period_in_days            = 365 -> null
+      - tags                               = {
+          - "Cluster" = "carequeue-eks"
+        } -> null
+      - tags_all                           = {
+          - "Cluster"   = "carequeue-eks"
+          - "ManagedBy" = "Terraform"
+          - "Owner"     = "rudhar07"
+          - "Project"   = "CareQueue"
+        } -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.eks.module.eks_managed_node_group["default"].module.user_data.null_resource.validate_cluster_service_cidr will be destroyed
+  - resource "null_resource" "validate_cluster_service_cidr" {
+      - id = "************8318340" -> null
+    }
+
+Plan: 0 to add, 0 to change, 52 to destroy.
+
+Changes to Outputs:
+  - availability_zones = [
+      - "ap-south-1a",
+      - "ap-south-1b",
+    ] -> null
+  - cluster_endpoint   = "https://FCE9F71E944BF5922CA5E434B9D46889.gr7.ap-south-1.eks.amazonaws.com" -> null
+  - cluster_name       = "carequeue-eks" -> null
+  - cluster_version    = "1.36" -> null
+  - configure_kubectl  = "aws eks update-kubeconfig --region ap-south-1 --name carequeue-eks" -> null
+  - node_group_name    = "carequeue-eks-ng-02843d9ae24bf2b43b99ae0640" -> null
+  - node_subnet_ids    = [
+      - "subnet-0fe85b8f1bd096bae",
+      - "subnet-093957180ba5e66f7",
+    ] -> null
+  - private_subnet_ids = [] -> null
+  - public_subnet_ids  = [
+      - "subnet-0fe85b8f1bd096bae",
+      - "subnet-093957180ba5e66f7",
+    ] -> null
+  - region             = "ap-south-1" -> null
+  - vpc_id             = "vpc-0bfb04165b05468c1" -> null
+module.eks.aws_iam_role_policy_attachment.cluster_encryption[0]: Destroying... [id=carequeue-eks-cluster-e708d513039d5faf0043a70931/arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23]
+module.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"]: Destroying... [id=sg-0a524b282a30c89cf,Cluster]
+module.eks.aws_eks_access_policy_association.this["cluster_creator_admin"]: Destroying... [id=carequeue-eks#arn:aws:iam::************:user/rudhar#arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy]
+module.eks.aws_eks_addon.this["coredns"]: Destroying... [id=carequeue-eks:coredns]
+module.vpc.aws_default_security_group.this[0]: Destroying... [id=sg-07cc42ef2012bb510]
+module.eks.aws_eks_addon.this["aws-ebs-csi-driver"]: Destroying... [id=carequeue-eks:aws-ebs-csi-driver]
+module.vpc.aws_default_route_table.default[0]: Destroying... [id=rtb-04a616c4517618265]
+module.eks.aws_eks_addon.this["kube-proxy"]: Destroying... [id=carequeue-eks:kube-proxy]
+module.eks.aws_eks_addon.before_compute["vpc-cni"]: Destroying... [id=carequeue-eks:vpc-cni]
+module.vpc.aws_default_network_acl.this[0]: Destroying... [id=acl-0f6050dd9679fb869]
+module.vpc.aws_default_security_group.this[0]: Destruction complete after 0s
+module.vpc.aws_default_route_table.default[0]: Destruction complete after 0s
+module.vpc.aws_default_network_acl.this[0]: Destruction complete after 0s
+module.eks.aws_eks_addon.before_compute["eks-pod-identity-agent"]: Destroying... [id=carequeue-eks:eks-pod-identity-agent]
+module.eks.module.kms.aws_kms_alias.this["cluster"]: Destroying... [id=alias/eks/carequeue-eks]
+module.vpc.aws_route.public_internet_gateway[0]: Destroying... [id=r-rtb-0d13707ff3ef496eb1080289494]
+module.eks.module.kms.aws_kms_alias.this["cluster"]: Destruction complete after 0s
+aws_iam_role_policy_attachment.ebs_csi[0]: Destroying... [id=carequeue-eks-ebs-csi/arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy]
+module.eks.aws_ec2_tag.cluster_primary_security_group["Cluster"]: Destruction complete after 0s
+module.vpc.aws_route_table_association.public[1]: Destroying... [id=rtbassoc-0a033b9c6a8a8eb6e]
+module.eks.aws_eks_access_policy_association.this["cluster_creator_admin"]: Destruction complete after 0s
+module.vpc.aws_route_table_association.public[0]: Destroying... [id=rtbassoc-03ae311a853766cd6]
+module.vpc.aws_route.public_internet_gateway[0]: Destruction complete after 0s
+module.eks.aws_eks_access_entry.this["cluster_creator"]: Destroying... [id=carequeue-eks:arn:aws:iam::************:user/rudhar]
+module.vpc.aws_route_table_association.public[0]: Destruction complete after 0s
+module.vpc.aws_internet_gateway.this[0]: Destroying... [id=igw-08589c27afbe0d8d2]
+module.vpc.aws_route_table_association.public[1]: Destruction complete after 1s
+module.vpc.aws_route_table.public[0]: Destroying... [id=rtb-0d13707ff3ef496eb]
+module.eks.aws_eks_access_entry.this["cluster_creator"]: Destruction complete after 1s
+module.eks.aws_iam_role_policy_attachment.cluster_encryption[0]: Destruction complete after 1s
+module.eks.aws_iam_policy.cluster_encryption[0]: Destroying... [id=arn:aws:iam::************:policy/carequeue-eks-cluster-ClusterEncryption91fd2dacb4c92c0b103c10ab23]
+module.vpc.aws_route_table.public[0]: Destruction complete after 0s
+aws_iam_role_policy_attachment.ebs_csi[0]: Destruction complete after 1s
+module.eks.aws_eks_addon.before_compute["eks-pod-identity-agent"]: Destruction complete after 1s
+module.eks.aws_eks_addon.this["kube-proxy"]: Destruction complete after 1s
+module.eks.aws_iam_policy.cluster_encryption[0]: Destruction complete after 0s
+module.eks.aws_eks_addon.this["coredns"]: Destruction complete after 2s
+module.eks.aws_eks_addon.before_compute["vpc-cni"]: Destruction complete after 2s
+module.eks.aws_eks_addon.this["aws-ebs-csi-driver"]: Destruction complete after 8s
+module.eks.module.eks_managed_node_group["default"].module.user_data.null_resource.validate_cluster_service_cidr: Destroying... [id=************8318340]
+aws_iam_role.ebs_csi[0]: Destroying... [id=carequeue-eks-ebs-csi]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0] (deposed object d9a739b8): Destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833]
+module.eks.module.eks_managed_node_group["default"].module.user_data.null_resource.validate_cluster_service_cidr: Destruction complete after 0s
+aws_iam_role.ebs_csi[0]: Destruction complete after 1s
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 00m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 00m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 00m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 00m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 00m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 00m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 00m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 00m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 00m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 00m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 00m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 00m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 00m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 00m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 00m50s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 01m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 01m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 01m00s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 01m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 01m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 01m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 01m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 01m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 01m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 01m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 01m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 01m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 01m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 01m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 01m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 01m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 01m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 01m50s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 02m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 02m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 02m00s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 02m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 02m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 02m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 02m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 02m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 02m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 02m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 02m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 02m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 02m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 02m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 02m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 02m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 02m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 02m50s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 03m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 03m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 03m00s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 03m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 03m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 03m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 03m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 03m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 03m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 03m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 03m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 03m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 03m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 03m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 03m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 03m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 03m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 03m50s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 04m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 04m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 04m00s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 04m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 04m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 04m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 04m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 04m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 04m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 04m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 04m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 04m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 04m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 04m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 04m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 04m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 04m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 04m50s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 05m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 05m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 05m00s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 05m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 05m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 05m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 05m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 05m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 05m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 05m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 05m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 05m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 05m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 05m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 05m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 05m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 05m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 05m50s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 06m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 06m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 06m00s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 06m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 06m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 06m10s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 06m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 06m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 06m20s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 06m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 06m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 06m30s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Still destroying... [id=igw-08589c27afbe0d8d2, 06m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 06m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 06m40s elapsed]
+module.vpc.aws_internet_gateway.this[0]: Destruction complete after 6m48s
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 06m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 06m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 07m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 07m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 07m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 07m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 07m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 07m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 07m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 07m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 07m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 07m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 07m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 07m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 08m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 08m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-77026d4e05d0ceb5561ea00833, 08m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 08m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Destruction complete after 8m11s
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 08m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 08m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 08m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 08m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 09m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 09m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 09m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 09m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 09m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 09m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 10m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 10m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 10m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 10m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 10m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 10m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 11m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 11m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 11m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 11m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 11m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 11m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 12m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 12m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 12m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 12m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 12m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 12m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 13m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 13m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 13m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 13m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 13m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 13m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 14m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 14m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 14m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 14m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 14m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 14m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 15m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 15m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 15m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 15m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 15m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 15m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 16m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 16m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 16m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 16m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 16m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 16m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 17m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 17m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 17m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 17m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 17m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 17m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 18m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 18m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 18m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 18m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_launch_template.this[0]: Destroying... [id=lt-06389149ce1439994]
+module.eks.module.eks_managed_node_group["default"].aws_launch_template.this[0]: Destruction complete after 2s
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Destroying... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Destroying... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Destroying... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3/arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy]
+module.eks.time_sleep.this[0]: Destroying... [id=2026-10-16T19:13:59Z]
+module.eks.time_sleep.this[0]: Destruction complete after 0s
+module.eks.aws_eks_cluster.this[0]: Destroying... [id=carequeue-eks]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEC2ContainerRegistryReadOnly"]: Destruction complete after 2s
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKS_CNI_Policy"]: Destruction complete after 2s
+module.eks.module.eks_managed_node_group["default"].aws_iam_role_policy_attachment.this["AmazonEKSWorkerNodePolicy"]: Destruction complete after 2s
+module.eks.module.eks_managed_node_group["default"].aws_iam_role.this[0]: Destroying... [id=carequeue-eks-ng-eks-node-group-b9c395460441bde9d7b7443af3]
+module.eks.module.eks_managed_node_group["default"].aws_iam_role.this[0]: Destruction complete after 1s
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 18m40s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 00m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 18m50s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 00m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 19m00s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 00m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 19m10s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 00m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 19m20s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 00m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 19m30s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 01m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 19m40s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 01m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 19m50s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 01m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 20m00s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 01m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 20m10s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 01m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 20m20s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 01m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 20m30s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 02m00s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 20m40s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 02m10s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 20m50s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 02m20s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 21m00s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 02m30s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 21m10s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 02m40s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 21m20s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 02m50s elapsed]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 21m30s elapsed]
+module.eks.aws_eks_cluster.this[0]: Still destroying... [id=carequeue-eks, 03m00s elapsed]
+module.eks.aws_eks_cluster.this[0]: Destruction complete after 3m7s
+module.eks.aws_security_group_rule.node["ingress_self_coredns_udp"]: Destroying... [id=sgrule-1368510943]
+module.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"]: Destroying... [id=sgrule-1315198983]
+module.eks.aws_security_group_rule.node["ingress_cluster_10251_webhook"]: Destroying... [id=sgrule-413523112]
+module.vpc.aws_subnet.public[0]: Destroying... [id=subnet-0fe85b8f1bd096bae]
+module.eks.aws_security_group_rule.node["egress_all"]: Destroying... [id=sgrule-1964076610]
+module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Destroying... [id=carequeue-eks-cluster-e708d513039d5faf0043a70931/arn:aws:iam::aws:policy/AmazonEKSClusterPolicy]
+module.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"]: Destroying... [id=sgrule-1563976742]
+module.eks.aws_security_group_rule.node["ingress_cluster_kubelet"]: Destroying... [id=sgrule-753700051]
+module.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"]: Destroying... [id=sgrule-4123947568]
+module.eks.module.kms.aws_kms_key.this[0]: Destroying... [id=503fede8-b248-4225-b2f7-189a02be8099]
+module.eks.module.kms.aws_kms_key.this[0]: Destruction complete after 0s
+module.vpc.aws_subnet.public[1]: Destroying... [id=subnet-093957180ba5e66f7]
+module.eks.module.eks_managed_node_group["default"].aws_eks_node_group.this[0]: Still destroying... [id=carequeue-eks:carequeue-eks-ng-02843d9ae24bf2b43b99ae0640, 21m40s elapsed]
+module.eks.aws_security_group_rule.node["ingress_cluster_6443_webhook"]: Destruction complete after 0s
+module.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"]: Destroying... [id=sgrule-717581260]
+module.vpc.aws_subnet.public[0]: Destruction complete after 1s
+module.eks.aws_security_group_rule.node["ingress_cluster_443"]: Destroying... [id=sgrule-1193670687]
+module.vpc.aws_subnet.public[1]: Destruction complete after 1s
+module.eks.aws_cloudwatch_log_group.this[0]: Destroying... [id=/aws/eks/carequeue-eks/cluster]
+module.eks.aws_security_group_rule.node["ingress_self_coredns_udp"]: Destruction complete after 1s
+module.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"]: Destroying... [id=sgrule-2491024304]
+module.eks.aws_cloudwatch_log_group.this[0]: Destruction complete after 0s
+module.eks.aws_security_group_rule.cluster["ingress_nodes_443"]: Destroying... [id=sgrule-1862539929]
+module.eks.aws_iam_role_policy_attachment.this["AmazonEKSClusterPolicy"]: Destruction complete after 1s
+module.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"]: Destroying... [id=sgrule-2996118358]
+module.eks.aws_security_group_rule.node["ingress_cluster_kubelet"]: Destruction complete after 1s
+module.eks.aws_security_group_rule.cluster["ingress_nodes_443"]: Destruction complete after 0s
+module.eks.aws_iam_role.this[0]: Destroying... [id=carequeue-eks-cluster-e708d513039d5faf0043a70931]
+module.eks.aws_security_group_rule.node["ingress_cluster_8443_webhook"]: Destruction complete after 2s
+module.eks.aws_security_group_rule.node["egress_all"]: Destruction complete after 2s
+module.eks.aws_iam_role.this[0]: Destruction complete after 1s
+module.eks.aws_security_group_rule.node["ingress_self_coredns_tcp"]: Destruction complete after 3s
+module.eks.aws_security_group_rule.node["ingress_cluster_10251_webhook"]: Destruction complete after 3s
+module.eks.aws_security_group_rule.node["ingress_cluster_9443_webhook"]: Destruction complete after 3s
+module.eks.aws_security_group_rule.node["ingress_cluster_443"]: Destruction complete after 3s
+module.eks.aws_security_group_rule.node["ingress_cluster_4443_webhook"]: Destruction complete after 4s
+module.eks.aws_security_group_rule.node["ingress_nodes_ephemeral"]: Destruction complete after 4s
+module.eks.aws_security_group.cluster[0]: Destroying... [id=sg-0215d14ad1f77131a]
+module.eks.aws_security_group.node[0]: Destroying... [id=sg-056861ffeffaa1b70]
+module.eks.aws_security_group.node[0]: Destruction complete after 1s
+module.eks.aws_security_group.cluster[0]: Destruction complete after 1s
+module.vpc.aws_vpc.this[0]: Destroying... [id=vpc-0bfb04165b05468c1]
+module.vpc.aws_vpc.this[0]: Destruction complete after 0s
+
+Destroy complete! Resources: 51 destroyed.
+[exit code: 0]
+# finished 2026-10-17 01:21:25 IST
+
+# Note: during the destroy, the old node group (the failed t3.medium one) stayed in DELETING because its
+# Auto Scaling group kept retrying launches the Free plan rejects. It was unblocked at ~01:16 IST with:
+$ aws autoscaling update-auto-scaling-group --auto-scaling-group-name eks-carequeue-eks-ng-77026d4e...-90d0a311-... --min-size 0 --max-size 0 --desired-capacity 0
+
+# Post-destroy check: nothing from carequeue left in ap-south-1
+# 2026-10-17 01:21 IST
+
+$ terraform -chdir=terraform state list
+
+$ aws eks list-clusters --output text
+
+$ aws ec2 describe-vpcs --filters Name=tag:Name,Values=carequeue-eks-vpc --query Vpcs[].VpcId --output text
+
+$ aws ec2 describe-instances --filters Name=tag:eks:cluster-name,Values=carequeue-eks Name=instance-state-name,Values=pending,running,stopping,stopped --query Reservations[].Instances[].InstanceId --output text
+
+$ aws ec2 describe-nat-gateways --filter Name=state,Values=available,pending --query NatGateways[].NatGatewayId --output text
+
+$ aws ec2 describe-addresses --query Addresses[].AllocationId --output text
+
+$ aws elbv2 describe-load-balancers --query LoadBalancers[].LoadBalancerName --output text
+
+$ aws ec2 describe-volumes --filters Name=tag:KubernetesCluster,Values=carequeue-eks --query Volumes[].VolumeId --output text
+
+$ aws autoscaling describe-auto-scaling-groups --query AutoScalingGroups[?contains(AutoScalingGroupName,`carequeue`)].AutoScalingGroupName --output text
+
+$ aws logs describe-log-groups --log-group-name-prefix /aws/eks/carequeue --query logGroups[].logGroupName --output text
+

@@ -240,14 +240,17 @@ A plan against a local AWS mock produced 51 resources ([tf-04](docs/evidence/tf-
    ([tf-aws-02](docs/evidence/tf-aws-02-apply.txt)). The committed default stays `t3.medium` for a
    normal paid account.
 3. `kubectl get nodes`: **2 nodes Ready**, Kubernetes v1.36 ([tf-aws-03](docs/evidence/tf-aws-03-kubectl-get-nodes.txt)).
-4. `terraform destroy`: started right after step 3; the EC2 nodes were already terminated when this
-   was committed, and the cluster and VPC deletion was still in progress.
+4. `terraform destroy`: **Destroy complete! Resources: 51 destroyed.** (01:21 IST). A follow-up check
+   found nothing left: no cluster, VPC, instances, NAT gateways, Elastic IPs, load balancers, volumes
+   or log groups ([tf-aws-04](docs/evidence/tf-aws-04-destroy-and-verify.txt)).
 
 | Plan | VPC in the Console | EKS cluster in the Console |
 |---|---|---|
 | ![plan](docs/screenshots/aws-01-terraform-plan.png) | ![vpc](docs/screenshots/aws-02-console-vpc.png) | ![eks](docs/screenshots/aws-03-console-eks-cluster-active.png) |
 
-`kubectl get nodes` on EKS: ![nodes](docs/screenshots/aws-04-terminal-kubectl-get-nodes.png)
+| `kubectl get nodes` on EKS | `terraform destroy` + check |
+|---|---|
+| ![nodes](docs/screenshots/aws-04-terminal-kubectl-get-nodes.png) | ![destroy](docs/screenshots/aws-05-terminal-terraform-destroy.png) |
 
 An earlier attempt from a different AWS account was blocked by an AWS Organizations SCP
 ([tf-05](docs/evidence/tf-05-real-aws-plan-blocked-by-scp.txt)); nothing was created there.
@@ -332,7 +335,7 @@ and the verification.
 | M4 Docker | `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage), non-root ([07](docs/evidence/07-nonroot.txt)), compose ([05](docs/evidence/05-compose-up.txt), [11](docs/evidence/11-compose-localhost-3000.txt), `localhost:3000` screenshots in section 3) |
 | M5 CI/CD | `.github/workflows/ci-cd.yml`, green run links and screenshots in section 5, GHCR packages with SHA tags (screenshots in section 5) |
 | M6 DevSecOps | Trivy steps in the workflow, explanation and pipeline Trivy output in section 6 |
-| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), real AWS plan, apply, Console screenshots and `kubectl get nodes` in section 7 |
+| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), real AWS plan, apply, Console screenshots, `kubectl get nodes` and destroy in section 7 |
 | M8 Kubernetes + Helm | `k8s/namespace.yaml`, `helm/carequeue/`, section 8 screenshots |
 | M9 Observability | `/metrics`, `monitoring/`, section 9 screenshots |
 | M10 Docs + demo | this README; live demo: commit a change → pipeline → new SHA deployed |
