@@ -1,0 +1,93 @@
+# Case 3: Service selector mismatch -> no endpoints - 2026-10-16T15:26:21Z
+# BEFORE
+$ kubectl get endpointslices -n carequeue -l kubernetes.io/service-name=carequeue-backend
+NAME                      ADDRESSTYPE   PORTS   ENDPOINTS                 AGE
+carequeue-backend-s5pxd   IPv4          8000    10.244.0.44,10.244.0.45   21m
+
+# BREAK: someone 'renames' the component label in the live Service (kubectl patch, outside Helm)
+$ kubectl patch -n carequeue svc carequeue-backend --type=json --patch-file troubleshooting/03-service-selector.patch.json
+service/carequeue-backend patched
+
+# SYMPTOM
+$ curl -sS -i http://localhost:8088/api/info | head -8
+HTTP/1.1 503 Service Temporarily Unavailable
+Date: Fri, 16 Oct 2026 15:26:27 GMT
+Content-Type: text/html
+Content-Length: 190
+Connection: keep-alive
+
+<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+
+$ curl -sS -o /dev/null -w 'frontend still up: GET / -> HTTP %{http_code}\n' http://localhost:8088/
+frontend still up: GET / -> HTTP 200
+
+$ kubectl exec -n carequeue deploy/carequeue-frontend -- wget -S -qO- http://127.0.0.1:8080/api/info 2>&1 | head -3
+  HTTP/1.1 502 Bad Gateway
+wget: server returned error: HTTP/1.1 502 Bad Gateway
+command terminated with exit code 1
+
+$ helm test carequeue -n carequeue --logs --timeout 2m 2>&1 | tail -12
+Phase:          Failed
+
+POD LOGS: carequeue-test-connection (curl)
+== backend readiness (http://carequeue-backend:8000/ready)
+curl: (7) Failed to connect to carequeue-backend port 8000 after 2 ms: Could not connect to server
+curl: (7) Failed to connect to carequeue-backend port 8000 after 0 ms: Could not connect to server
+curl: (7) Failed to connect to carequeue-backend port 8000 after 0 ms: Could not connect to server
+curl: (7) Failed to connect to carequeue-backend port 8000 after 0 ms: Could not connect to server
+curl: (7) Failed to connect to carequeue-backend port 8000 after 0 ms: Could not connect to server
+curl: (7) Failed to connect to carequeue-backend port 8000 after 0 ms: Could not connect to server
+
+Error: resource Pod/carequeue/carequeue-test-connection not ready. status: Failed, message: pod carequeue-test-connection failed
+
+# INVESTIGATE
+$ kubectl get svc carequeue-backend -n carequeue -o wide
+NAME                TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+carequeue-backend   ClusterIP   10.96.94.172   <none>        8000/TCP   21m   app.kubernetes.io/component=api,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+
+$ kubectl get endpointslices -n carequeue -l kubernetes.io/service-name=carequeue-backend
+NAME                      ADDRESSTYPE   PORTS     ENDPOINTS   AGE
+carequeue-backend-s5pxd   IPv4          <unset>   <unset>     21m
+
+$ kubectl describe svc carequeue-backend -n carequeue | grep -E 'Selector|Endpoints'
+Selector:                 app.kubernetes.io/component=api,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+Endpoints:                
+
+$ kubectl get pods -n carequeue -l app.kubernetes.io/component=api
+No resources found in carequeue namespace.
+
+$ kubectl get pods -n carequeue --show-labels -l app.kubernetes.io/instance=carequeue | awk '{print $1, $NF}' | sed 's/,app.kubernetes.io\/instance[^,]*//; s/helm.sh[^,]*,//; s/pod-template-hash[^,]*,//'
+NAME LABELS
+carequeue-backend-ffc95c678-4nh2w app.kubernetes.io/component=backend,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,app.kubernetes.io/version=1.0.0,pod-template-hash=ffc95c678
+carequeue-backend-ffc95c678-v49dc app.kubernetes.io/component=backend,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,app.kubernetes.io/version=1.0.0,pod-template-hash=ffc95c678
+carequeue-frontend-6b9c489c59-btp6r app.kubernetes.io/component=frontend,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,app.kubernetes.io/version=1.0.0,pod-template-hash=6b9c489c59
+carequeue-frontend-6b9c489c59-pmb8b app.kubernetes.io/component=frontend,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,app.kubernetes.io/version=1.0.0,pod-template-hash=6b9c489c59
+carequeue-postgresql-0 app.kubernetes.io/component=postgresql,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,app.kubernetes.io/version=1.0.0,apps.kubernetes.io/pod-index=0,controller-revision-hash=carequeue-postgresql-56db57589b,statefulset.kubernetes.io/pod-name=carequeue-postgresql-0
+carequeue-test-connection app.kubernetes.io/component=test,app.kubernetes.io/managed-by=Helm,app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,app.kubernetes.io/version=1.0.0,helm.sh/chart=carequeue-1.0.0
+
+$ helm get manifest carequeue -n carequeue | kubectl diff -n carequeue -f - | grep -E '^[-+] ' 
+-    app.kubernetes.io/component: api
++    app.kubernetes.io/component: backend
+
+# ROOT CAUSE: the Service selects app.kubernetes.io/component=api, but the backend pods are labelled component=backend.
+# No pod matches -> the EndpointSlice is empty -> ingress-nginx answers 503, nginx in the frontend 502.
+# FIX: restore the selector (in practice: re-apply the chart; never hand-edit Helm-managed objects)
+$ kubectl patch -n carequeue svc carequeue-backend --type=json --patch-file troubleshooting/03-service-selector.fix.patch.json
+service/carequeue-backend patched
+
+# VERIFY
+$ kubectl get endpointslices -n carequeue -l kubernetes.io/service-name=carequeue-backend
+NAME                      ADDRESSTYPE   PORTS   ENDPOINTS                 AGE
+carequeue-backend-s5pxd   IPv4          8000    10.244.0.45,10.244.0.44   22m
+
+$ curl -sS http://localhost:8088/api/info; echo
+{"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+
+$ helm get manifest carequeue -n carequeue | kubectl diff -n carequeue -f - >/dev/null && echo 'live state matches the release (no drift)'
+live state matches the release (no drift)
+
+$ helm test carequeue -n carequeue --logs 2>&1 | grep -E 'Phase|helm test: OK'
+Phase:          Succeeded
+helm test: OK
+

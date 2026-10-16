@@ -1,0 +1,76 @@
+# Case 1: ImagePullBackOff (wrong image tag) - 2026-10-16T15:20:16Z
+# BREAK
+$ kubectl apply -n carequeue -f troubleshooting/01-broken-image.yaml
+deployment.apps/cq-lab-image created
+
+# SYMPTOM
+$ kubectl get pods -n carequeue -l app=cq-lab-image
+NAME                            READY   STATUS             RESTARTS   AGE
+cq-lab-image-8647d4cb56-x65jx   0/1     ImagePullBackOff   0          15s
+
+$ kubectl rollout status deployment/cq-lab-image -n carequeue --timeout=10s
+Waiting for deployment "cq-lab-image" rollout to finish: 0 of 1 updated replicas are available...
+error: timed out waiting for the condition
+
+# INVESTIGATE
+$ kubectl describe pod -n carequeue -l app=cq-lab-image | sed -n '/Containers:/,/Ready:/p;/Events:/,$p'
+Containers:
+  backend:
+    Container ID:   
+    Image:          carequeue-backend:1.0.1
+    Image ID:       
+    Port:           8000/TCP (http)
+    Host Port:      0/TCP (http)
+    State:          Waiting
+      Reason:       ImagePullBackOff
+    Ready:          False
+Events:
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  26s                default-scheduler  Successfully assigned carequeue/cq-lab-image-8647d4cb56-x65jx to cq-control-plane
+  Normal   BackOff    23s                kubelet            spec.containers{backend}: Back-off pulling image "carequeue-backend:1.0.1"
+  Warning  Failed     23s                kubelet            spec.containers{backend}: Error: ImagePullBackOff
+  Normal   Pulling    12s (x2 over 25s)  kubelet            spec.containers{backend}: Pulling image "carequeue-backend:1.0.1"
+  Warning  Failed     10s (x2 over 24s)  kubelet            spec.containers{backend}: Failed to pull image "carequeue-backend:1.0.1": failed to pull and unpack image "docker.io/library/carequeue-backend:1.0.1": failed to resolve reference "docker.io/library/carequeue-backend:1.0.1": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+  Warning  Failed     10s (x2 over 24s)  kubelet            spec.containers{backend}: Error: ErrImagePull
+
+$ kubectl get events -n carequeue --field-selector involvedObject.kind=Pod --sort-by=.lastTimestamp | grep cq-lab-image | tail -6
+26s         Normal    Scheduled   pod/cq-lab-image-8647d4cb56-x65jx         Successfully assigned carequeue/cq-lab-image-8647d4cb56-x65jx to cq-control-plane
+23s         Normal    BackOff     pod/cq-lab-image-8647d4cb56-x65jx         Back-off pulling image "carequeue-backend:1.0.1"
+23s         Warning   Failed      pod/cq-lab-image-8647d4cb56-x65jx         Error: ImagePullBackOff
+12s         Normal    Pulling     pod/cq-lab-image-8647d4cb56-x65jx         Pulling image "carequeue-backend:1.0.1"
+10s         Warning   Failed      pod/cq-lab-image-8647d4cb56-x65jx         Failed to pull image "carequeue-backend:1.0.1": failed to pull and unpack image "docker.io/library/carequeue-backend:1.0.1": failed to resolve reference "docker.io/library/carequeue-backend:1.0.1": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+10s         Warning   Failed      pod/cq-lab-image-8647d4cb56-x65jx         Error: ErrImagePull
+
+$ kubectl get deployment cq-lab-image -n carequeue -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+carequeue-backend:1.0.1
+
+$ docker exec cq-control-plane crictl images | grep -E 'IMAGE|carequeue-backend'
+IMAGE                                                    TAG                  IMAGE ID            SIZE
+docker.io/library/carequeue-backend                      local                318a4940bf41e       65.9MB
+
+# ROOT CAUSE: the tag 1.0.1 does not exist. The node only has carequeue-backend:local, so the kubelet tries
+# docker.io/library/carequeue-backend:1.0.1, which does not exist (pull access denied / not found).
+# FIX: point the Deployment at the tag that exists (in Git: fix the manifest/values and re-apply)
+$ kubectl set image -n carequeue deployment/cq-lab-image backend=carequeue-backend:local
+deployment.apps/cq-lab-image image updated
+
+$ kubectl rollout status deployment/cq-lab-image -n carequeue --timeout=120s
+Waiting for deployment "cq-lab-image" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "cq-lab-image" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "cq-lab-image" rollout to finish: 1 old replicas are pending termination...
+deployment "cq-lab-image" successfully rolled out
+
+# VERIFY
+$ kubectl get pods -n carequeue -l app=cq-lab-image
+NAME                            READY   STATUS        RESTARTS   AGE
+cq-lab-image-65b49448f-rtwvt    1/1     Running       0          6s
+cq-lab-image-8647d4cb56-x65jx   0/1     Terminating   0          32s
+
+$ kubectl exec -n carequeue deploy/cq-lab-image -- python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/ready').read().decode())"
+{"status":"ready","database":"up"}
+
+# CLEAN UP
+$ kubectl delete -n carequeue -f troubleshooting/01-broken-image.yaml
+deployment.apps "cq-lab-image" deleted from carequeue namespace
+

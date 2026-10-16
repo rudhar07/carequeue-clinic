@@ -1,0 +1,73 @@
+# Case 5: HPA shows <unknown> (no CPU requests) - 2026-10-16T15:20:16Z
+# BREAK
+$ kubectl apply -n carequeue -f troubleshooting/05-hpa-no-requests.yaml
+deployment.apps/cq-lab-hpa created
+horizontalpodautoscaler.autoscaling/cq-lab-hpa created
+
+# SYMPTOM
+$ kubectl get hpa cq-lab-hpa -n carequeue
+NAME         REFERENCE               TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+cq-lab-hpa   Deployment/cq-lab-hpa   cpu: <unknown>/60%   1         3         1          31s
+
+# INVESTIGATE
+$ kubectl describe hpa cq-lab-hpa -n carequeue | sed -n '/Metrics:/,$p'
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  <unknown> / 60%
+Min replicas:                                          1
+Max replicas:                                          3
+Deployment pods:                                       1 current / 0 desired
+Conditions:
+  Type           Status  Reason                   Message
+  ----           ------  ------                   -------
+  AbleToScale    True    SucceededGetScale        the HPA controller was able to get the target's current scale
+  ScalingActive  False   FailedGetResourceMetric  the HPA was unable to compute the replica count: failed to get cpu utilization: missing request for cpu in container web of Pod cq-lab-hpa-5f7d85d9bc-f9zf7
+Events:
+  Type     Reason                        Age                From                       Message
+  ----     ------                        ----               ----                       -------
+  Warning  FailedGetResourceMetric       16s (x2 over 31s)  horizontal-pod-autoscaler  failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedComputeMetricsReplicas  16s (x2 over 31s)  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedGetResourceMetric       1s                 horizontal-pod-autoscaler  failed to get cpu utilization: missing request for cpu in container web of Pod cq-lab-hpa-5f7d85d9bc-f9zf7
+  Warning  FailedComputeMetricsReplicas  1s                 horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: missing request for cpu in container web of Pod cq-lab-hpa-5f7d85d9bc-f9zf7
+
+$ kubectl get deployment cq-lab-hpa -n carequeue -o jsonpath='resources: {.spec.template.spec.containers[0].resources}{"\n"}'
+resources: {}
+
+$ kubectl top pods -n carequeue -l app=cq-lab-hpa
+NAME                          CPU(cores)   MEMORY(bytes)   
+cq-lab-hpa-5f7d85d9bc-f9zf7   9m           12Mi            
+
+$ kubectl get apiservice v1beta1.metrics.k8s.io
+NAME                     SERVICE                      AVAILABLE   AGE
+v1beta1.metrics.k8s.io   kube-system/metrics-server   True        19m
+
+# ROOT CAUSE: metrics-server works (kubectl top has numbers), but the container has no resources.requests.cpu.
+# averageUtilization = usage / request, so the HPA cannot compute it: 'missing request for cpu'.
+# (The other way to get <unknown> is no metrics-server at all: then kubectl top fails too.)
+# FIX
+$ kubectl patch -n carequeue deployment cq-lab-hpa --type=json --patch-file troubleshooting/05-hpa.fix.patch.json
+deployment.apps/cq-lab-hpa patched
+
+$ kubectl rollout status deployment/cq-lab-hpa -n carequeue --timeout=120s
+Waiting for deployment "cq-lab-hpa" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "cq-lab-hpa" rollout to finish: 1 old replicas are pending termination...
+deployment "cq-lab-hpa" successfully rolled out
+
+# VERIFY
+$ kubectl get hpa cq-lab-hpa -n carequeue
+NAME         REFERENCE               TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+cq-lab-hpa   Deployment/cq-lab-hpa   cpu: 0%/60%   1         3         1          78s
+
+$ kubectl describe hpa cq-lab-hpa -n carequeue | sed -n '/Conditions:/,/Events:/p'
+Conditions:
+  Type            Status  Reason               Message
+  ----            ------  ------               -------
+  AbleToScale     True    ScaleDownStabilized  recent recommendations were higher than current one, applying the highest recent recommendation
+  ScalingActive   True    ValidMetricFound     the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  False   DesiredWithinRange   the desired count is within the acceptable range
+Events:
+
+# CLEAN UP
+$ kubectl delete -n carequeue -f troubleshooting/05-hpa-no-requests.yaml
+deployment.apps "cq-lab-hpa" deleted from carequeue namespace
+horizontalpodautoscaler.autoscaling "cq-lab-hpa" deleted from carequeue namespace
+

@@ -1,0 +1,59 @@
+# Case 5: HPA shows "cpu: <unknown>/60%" and never scales
+# A Deployment without CPU requests plus a CPU-utilisation HPA. Utilisation is
+# usage / request, so with no request there is nothing to divide by.
+#   kubectl apply -n carequeue -f troubleshooting/05-hpa-no-requests.yaml
+# Fix: kubectl patch -n carequeue deployment cq-lab-hpa --type=json \
+#        --patch-file troubleshooting/05-hpa.fix.patch.json
+# Write-up: troubleshooting/README.md#case-5
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cq-lab-hpa
+  labels: {app.kubernetes.io/part-of: carequeue-lab, lab-case: "05"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: cq-lab-hpa}
+  template:
+    metadata:
+      labels: {app: cq-lab-hpa, lab-case: "05"}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: web
+          image: carequeue-frontend:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: BACKEND_URL, value: "http://carequeue-backend:8000"}
+          ports:
+            - {name: http, containerPort: 8080}
+          # BUG: no resources.requests.cpu
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+            - {name: conf, mountPath: /etc/nginx/conf.d}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+        - {name: conf, emptyDir: {}}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cq-lab-hpa
+  labels: {app.kubernetes.io/part-of: carequeue-lab, lab-case: "05"}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: cq-lab-hpa}
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 60}

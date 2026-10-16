@@ -1,0 +1,83 @@
+# Case 4: Ingress backend Service name/port wrong -> 503 - 2026-10-16T15:20:16Z
+# BREAK
+$ kubectl apply -n carequeue -f troubleshooting/04-broken-ingress.yaml
+ingress.networking.k8s.io/cq-lab-ingress created
+
+# SYMPTOM
+$ curl -sS -i -H 'Host: lab.carequeue.local' http://localhost:8088/api/info | head -12
+HTTP/1.1 503 Service Temporarily Unavailable
+Date: Fri, 16 Oct 2026 15:20:31 GMT
+Content-Type: text/html
+Content-Length: 190
+Connection: keep-alive
+
+<html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+<hr><center>nginx</center>
+</body>
+
+$ curl -sS -o /dev/null -w 'GET / (frontend rule) -> HTTP %{http_code}\n' -H 'Host: lab.carequeue.local' http://localhost:8088/
+GET / (frontend rule) -> HTTP 200
+
+# INVESTIGATE
+$ kubectl get ingress -n carequeue
+NAME             CLASS   HOSTS                 ADDRESS     PORTS   AGE
+carequeue        nginx   carequeue.local       localhost   80      15m
+cq-lab-ingress   nginx   lab.carequeue.local   localhost   80      15s
+
+$ kubectl describe ingress cq-lab-ingress -n carequeue | sed -n '/Rules:/,$p'
+Rules:
+  Host                 Path  Backends
+  ----                 ----  --------
+  lab.carequeue.local  
+                       /api   carequeue-api:8000 (<error: services "carequeue-api" not found>)
+                       /      carequeue-frontend:http (10.244.0.12:8080,10.244.0.11:8080)
+Annotations:           <none>
+Events:
+  Type    Reason  Age               From                      Message
+  ----    ------  ----              ----                      -------
+  Normal  Sync    5s (x2 over 15s)  nginx-ingress-controller  Scheduled for sync
+
+$ kubectl get svc carequeue-api -n carequeue
+Error from server (NotFound): services "carequeue-api" not found
+
+$ kubectl get svc -n carequeue
+NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+carequeue-backend         ClusterIP   10.96.94.172    <none>        8000/TCP   15m
+carequeue-frontend        ClusterIP   10.96.129.195   <none>        80/TCP     15m
+carequeue-postgresql      ClusterIP   10.96.34.199    <none>        5432/TCP   15m
+carequeue-postgresql-hl   ClusterIP   None            <none>        5432/TCP   15m
+
+$ kubectl logs -n ingress-nginx deploy/ingress-nginx-controller --since=2m | grep -iE 'carequeue-api|lab.carequeue' | tail -5
+W1016 15:20:16.547183      11 controller.go:1135] Error obtaining Endpoints for Service "carequeue/carequeue-api": no object matching key "carequeue/carequeue-api" in local store
+W1016 15:20:20.330912      11 controller.go:1135] Error obtaining Endpoints for Service "carequeue/carequeue-api": no object matching key "carequeue/carequeue-api" in local store
+W1016 15:20:23.664082      11 controller.go:1135] Error obtaining Endpoints for Service "carequeue/carequeue-api": no object matching key "carequeue/carequeue-api" in local store
+W1016 15:20:26.998557      11 controller.go:1135] Error obtaining Endpoints for Service "carequeue/carequeue-api": no object matching key "carequeue/carequeue-api" in local store
+172.18.0.1 - - [16/Oct/2026:15:20:31 +0000] "GET /api/info HTTP/1.1" 503 190 "-" "curl/8.7.1" 90 0.000 [carequeue-carequeue-api-8000] [] - - - - 3238b0e6e05b90462ec961f168ae6e6a
+
+# ROOT CAUSE: the /api path points at Service 'carequeue-api' (port 8000), which does not exist; the backend
+# Service is 'carequeue-backend' with the named port 'http'. ingress-nginx has no endpoints for it -> 503.
+# FIX
+$ kubectl patch -n carequeue ingress cq-lab-ingress --type=json --patch-file troubleshooting/04-ingress.fix.patch.json
+ingress.networking.k8s.io/cq-lab-ingress patched
+
+# VERIFY
+$ kubectl describe ingress cq-lab-ingress -n carequeue | sed -n '/Rules:/,/Annotations:/p'
+Rules:
+  Host                 Path  Backends
+  ----                 ----  --------
+  lab.carequeue.local  
+                       /api   carequeue-backend:http (10.244.0.10:8000,10.244.0.9:8000,10.244.0.29:8000 + 1 more...)
+                       /      carequeue-frontend:http (10.244.0.12:8080,10.244.0.11:8080)
+Annotations:           <none>
+
+$ curl -sS -i -H 'Host: lab.carequeue.local' http://localhost:8088/api/info | head -1; curl -sS -H 'Host: lab.carequeue.local' http://localhost:8088/api/info; echo
+HTTP/1.1 200 OK
+{"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+
+# CLEAN UP
+$ kubectl delete -n carequeue -f troubleshooting/04-broken-ingress.yaml
+ingress.networking.k8s.io "cq-lab-ingress" deleted from carequeue namespace
+

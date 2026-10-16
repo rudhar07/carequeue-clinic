@@ -1,0 +1,45 @@
+# Case 1: ImagePullBackOff (wrong image tag)
+# A second copy of the backend ("cq-lab-image", e.g. a canary) is deployed with
+# a typo in the image tag: carequeue-backend:1.0.1 does not exist (the image
+# loaded into kind is carequeue-backend:local).
+#   kubectl apply -n carequeue -f troubleshooting/01-broken-image.yaml
+# Write-up: troubleshooting/README.md#case-1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cq-lab-image
+  labels: {app.kubernetes.io/part-of: carequeue-lab, lab-case: "01"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: cq-lab-image}
+  template:
+    metadata:
+      labels: {app: cq-lab-image, lab-case: "01"}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: backend
+          image: carequeue-backend:1.0.1        # BUG: no such tag
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8000}
+          envFrom:
+            - configMapRef: {name: carequeue-config}
+          env:
+            - name: DATABASE_URL
+              valueFrom: {secretKeyRef: {name: carequeue-db, key: DATABASE_URL}}
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}

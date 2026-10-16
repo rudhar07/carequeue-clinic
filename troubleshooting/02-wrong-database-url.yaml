@@ -1,0 +1,56 @@
+# Case 2: wrong DATABASE_URL -> pod Running but never Ready (readiness 503)
+# The password comes from the release Secret through $(POSTGRES_PASSWORD), but
+# the host is mistyped: "carequeue-postgres" instead of the Service
+# "carequeue-postgresql".
+#   kubectl apply -n carequeue -f troubleshooting/02-wrong-database-url.yaml
+# Fix: kubectl patch -n carequeue deployment cq-lab-db --type=json \
+#        --patch-file troubleshooting/02-database-url.fix.patch.json
+# Write-up: troubleshooting/README.md#case-2
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cq-lab-db
+  labels: {app.kubernetes.io/part-of: carequeue-lab, lab-case: "02"}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: cq-lab-db}
+  template:
+    metadata:
+      labels: {app: cq-lab-db, lab-case: "02"}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: backend
+          image: carequeue-backend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - {name: http, containerPort: 8000}
+          envFrom:
+            - configMapRef: {name: carequeue-config}
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: carequeue-db, key: POSTGRES_PASSWORD}}
+            - name: DATABASE_URL                # BUG: host "carequeue-postgres"
+              value: "postgresql+psycopg://carequeue:$(POSTGRES_PASSWORD)@carequeue-postgres:5432/carequeue"
+          livenessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: {path: /ready, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {cpu: 250m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}

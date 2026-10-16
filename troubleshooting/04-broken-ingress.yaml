@@ -1,0 +1,32 @@
+# Case 4: Ingress points at a Service that does not exist (503 from ingress-nginx)
+# A second host, lab.carequeue.local, routes /api to "carequeue-api" port 8000,
+# but the backend Service is "carequeue-backend" (named port "http").
+#   kubectl apply -n carequeue -f troubleshooting/04-broken-ingress.yaml
+# Fix: kubectl patch -n carequeue ingress cq-lab-ingress --type=json \
+#        --patch-file troubleshooting/04-ingress.fix.patch.json
+# Write-up: troubleshooting/README.md#case-4
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cq-lab-ingress
+  labels: {app.kubernetes.io/part-of: carequeue-lab, lab-case: "04"}
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: lab.carequeue.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: carequeue-api          # BUG: no such Service
+                port:
+                  number: 8000
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: carequeue-frontend
+                port:
+                  name: http

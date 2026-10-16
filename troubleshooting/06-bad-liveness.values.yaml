@@ -1,0 +1,13 @@
+# Case 6: liveness probe on a path the backend does not serve -> restart loop
+# A "small" values change: someone copied the frontend's probe path (/healthz)
+# to the backend, which serves /health. The startup and readiness probes still
+# pass, so the rollout looks fine at first, then the kubelet kills the
+# containers every ~30 s (and backs off longer each time).
+#   helm upgrade carequeue helm/carequeue -n carequeue -f helm/carequeue/values-dev.yaml \
+#     -f troubleshooting/06-bad-liveness.values.yaml
+# Fix: helm rollback carequeue <previous revision> -n carequeue
+# Write-up: troubleshooting/README.md#case-6
+backend:
+  probes:
+    liveness:
+      path: /healthz      # BUG: the backend's liveness endpoint is /health

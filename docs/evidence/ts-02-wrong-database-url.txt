@@ -1,0 +1,87 @@
+# Case 2: wrong DATABASE_URL -> Running but never Ready - 2026-10-16T15:20:16Z
+# BREAK
+$ kubectl apply -n carequeue -f troubleshooting/02-wrong-database-url.yaml
+deployment.apps/cq-lab-db created
+
+# SYMPTOM: the pod is Running, 0/1 Ready, and the rollout never finishes
+$ kubectl get pods -n carequeue -l app=cq-lab-db
+NAME                         READY   STATUS    RESTARTS   AGE
+cq-lab-db-7d54c9bcf8-rs7s2   0/1     Running   0          23s
+
+$ kubectl rollout status deployment/cq-lab-db -n carequeue --timeout=15s
+Waiting for deployment "cq-lab-db" rollout to finish: 0 of 1 updated replicas are available...
+error: timed out waiting for the condition
+
+# INVESTIGATE
+$ kubectl describe pod -n carequeue -l app=cq-lab-db | sed -n '/Liveness:/,/Readiness:/p;/Conditions:/,/Volumes:/p;/Events:/,$p'
+    Liveness:   http-get http://:http/health delay=0s timeout=1s period=10s #success=1 #failure=3
+    Readiness:  http-get http://:http/ready delay=0s timeout=1s period=5s #success=1 #failure=3
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       False 
+  ContainersReady             False 
+  PodScheduled                True 
+Volumes:
+Events:
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  38s                default-scheduler  Successfully assigned carequeue/cq-lab-db-7d54c9bcf8-rs7s2 to cq-control-plane
+  Normal   Pulled     37s                kubelet            spec.containers{backend}: Container image "carequeue-backend:local" already present on machine and can be accessed by the pod
+  Normal   Created    37s                kubelet            spec.containers{backend}: Container created
+  Normal   Started    37s                kubelet            spec.containers{backend}: Container started
+  Warning  Unhealthy  36s (x2 over 37s)  kubelet            spec.containers{backend}: Readiness probe failed: Get "http://10.244.0.34:8000/ready": dial tcp 10.244.0.34:8000: connect: connection refused
+  Warning  Unhealthy  30s                kubelet            spec.containers{backend}: Readiness probe failed: Get "http://10.244.0.34:8000/ready": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+  Warning  Unhealthy  1s (x6 over 26s)   kubelet            spec.containers{backend}: Readiness probe failed: HTTP probe failed with statuscode: 503
+
+$ kubectl exec -n carequeue deploy/cq-lab-db -- python -c "import urllib.request,urllib.error
+try: urllib.request.urlopen('http://127.0.0.1:8000/ready')
+except urllib.error.HTTPError as e: print(e.code, e.read().decode())"
+503 {"status":"unavailable","database":"down"}
+
+$ kubectl exec -n carequeue deploy/cq-lab-db -- python -c "import os,re;print(re.sub(r':[^:@/]+@', ':***@', os.environ['DATABASE_URL']))"
+postgresql+psycopg://carequeue:***@carequeue-postgres:5432/carequeue
+
+$ kubectl exec -n carequeue deploy/cq-lab-db -- python -c "import socket;socket.getaddrinfo('carequeue-postgres',5432)"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import socket;socket.getaddrinfo('carequeue-postgres',5432)
+                  ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.13/socket.py", line 983, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno -2] Name or service not known
+command terminated with exit code 1
+
+$ kubectl get svc -n carequeue -l app.kubernetes.io/component=postgresql
+NAME                      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+carequeue-postgresql      ClusterIP   10.96.34.199   <none>        5432/TCP   16m
+carequeue-postgresql-hl   ClusterIP   None           <none>        5432/TCP   16m
+
+# ROOT CAUSE: DATABASE_URL points at host 'carequeue-postgres'; the Service is 'carequeue-postgresql'.
+# DNS lookup fails, SELECT 1 in /ready fails, /ready answers 503, the readiness probe keeps the pod out of the
+# Service. Liveness (/health) does not touch the DB, so the pod is not restarted: correct behaviour.
+# FIX
+$ kubectl patch -n carequeue deployment cq-lab-db --type=json --patch-file troubleshooting/02-database-url.fix.patch.json
+deployment.apps/cq-lab-db patched
+
+$ kubectl rollout status deployment/cq-lab-db -n carequeue --timeout=120s
+Waiting for deployment "cq-lab-db" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "cq-lab-db" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "cq-lab-db" rollout to finish: 1 old replicas are pending termination...
+deployment "cq-lab-db" successfully rolled out
+
+# VERIFY
+$ kubectl get pods -n carequeue -l app=cq-lab-db
+NAME                         READY   STATUS        RESTARTS   AGE
+cq-lab-db-7d54c9bcf8-rs7s2   0/1     Terminating   0          47s
+cq-lab-db-c7d8c667c-lz5bw    1/1     Running       0          7s
+
+$ kubectl exec -n carequeue deploy/cq-lab-db -- python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/ready').read().decode())"
+{"status":"ready","database":"up"}
+
+# CLEAN UP
+$ kubectl delete -n carequeue -f troubleshooting/02-wrong-database-url.yaml
+deployment.apps "cq-lab-db" deleted from carequeue namespace
+

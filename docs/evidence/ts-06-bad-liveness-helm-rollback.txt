@@ -1,0 +1,100 @@
+# Case 6: failing liveness probe path -> restart loop, fixed with helm rollback - 2026-10-16T15:23:10Z
+# BEFORE
+$ helm history carequeue -n carequeue
+REVISION	UPDATED                 	STATUS    	CHART          	APP VERSION	DESCRIPTION     
+1       	Fri Oct 16 20:34:44 2026	superseded	carequeue-1.0.0	1.0.0      	Install complete
+2       	Fri Oct 16 20:44:10 2026	deployed  	carequeue-1.0.0	1.0.0      	Upgrade complete
+
+$ kubectl get pods -n carequeue -l app.kubernetes.io/component=backend
+NAME                                READY   STATUS    RESTARTS   AGE
+carequeue-backend-ffc95c678-dftrl   1/1     Running   0          18m
+carequeue-backend-ffc95c678-hszdb   1/1     Running   0          18m
+
+# BREAK: a values change ships a liveness path the backend does not serve
+$ helm upgrade carequeue helm/carequeue -n carequeue -f helm/carequeue/values-dev.yaml -f troubleshooting/06-bad-liveness.values.yaml 2>&1 | head -8
+Release "carequeue" has been upgraded. Happy Helming!
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:53:10 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 3
+DESCRIPTION: Upgrade complete
+NOTES:
+
+# SYMPTOM (a few minutes later)
+$ kubectl get pods -n carequeue -l app.kubernetes.io/component=backend
+NAME                                 READY   STATUS    RESTARTS     AGE
+carequeue-backend-5995d78cfb-4v89n   1/1     Running   3 (7s ago)   98s
+carequeue-backend-5995d78cfb-f759v   0/1     Running   3 (2s ago)   93s
+
+$ for i in 1 2 3 4 5 6; do curl -s -o /dev/null -w '%{http_code} ' http://localhost:8088/api/info; sleep 2; done; echo
+200 200 200 200 200 200 
+
+# INVESTIGATE
+$ kubectl get events -n carequeue --field-selector reason=Unhealthy --sort-by=.lastTimestamp | grep -i liveness | tail -4
+10s         Warning   Unhealthy   pod/carequeue-backend-5995d78cfb-4v89n    Liveness probe failed: HTTP probe failed with statuscode: 404
+6s          Warning   Unhealthy   pod/carequeue-backend-5995d78cfb-f759v    Liveness probe failed: HTTP probe failed with statuscode: 404
+
+$ kubectl get events -n carequeue --field-selector reason=Killing --sort-by=.lastTimestamp | tail -3
+101s        Normal   Killing   pod/carequeue-backend-ffc95c678-dftrl    Stopping container backend
+20s         Normal   Killing   pod/carequeue-backend-5995d78cfb-4v89n   Container backend failed liveness probe, will be restarted
+16s         Normal   Killing   pod/carequeue-backend-5995d78cfb-f759v   Container backend failed liveness probe, will be restarted
+
+$ kubectl get deploy carequeue-backend -n carequeue -o jsonpath='startup={.spec.template.spec.containers[0].startupProbe.httpGet.path} liveness={.spec.template.spec.containers[0].livenessProbe.httpGet.path} readiness={.spec.template.spec.containers[0].readinessProbe.httpGet.path}{"\n"}'
+startup=/health liveness=/healthz readiness=/ready
+
+$ kubectl exec -n carequeue deploy/carequeue-backend -c backend -- python -c "import urllib.request,urllib.error
+for p in ('/health','/healthz'):
+    try: print(p, urllib.request.urlopen('http://127.0.0.1:8000'+p).status)
+    except urllib.error.HTTPError as e: print(p, e.code)"
+/health 200
+/healthz 404
+
+$ helm get values carequeue -n carequeue | grep -B2 -A2 healthz
+  probes:
+    liveness:
+      path: /healthz
+frontend:
+  image:
+
+# ROOT CAUSE: livenessProbe.httpGet.path=/healthz (the frontend's nginx path); the backend serves /health and
+# answers 404. Startup and readiness still pass, so each new pod looked healthy and the rollout replaced every
+# old pod; then the kubelet kills each container after 3 failed liveness checks (~30 s): 3 restarts per pod in
+# 98 s. The API still answered 200 here because the two pods were rarely down at the same moment, but every restart
+# drops in-flight requests and the restart back-off grows (CrashLoopBackOff once it reaches the back-off delay).
+# FIX: roll back to the last good revision
+$ helm history carequeue -n carequeue
+REVISION	UPDATED                 	STATUS    	CHART          	APP VERSION	DESCRIPTION     
+1       	Fri Oct 16 20:34:44 2026	superseded	carequeue-1.0.0	1.0.0      	Install complete
+2       	Fri Oct 16 20:44:10 2026	superseded	carequeue-1.0.0	1.0.0      	Upgrade complete
+3       	Fri Oct 16 20:53:10 2026	deployed  	carequeue-1.0.0	1.0.0      	Upgrade complete
+
+$ helm rollback carequeue 2 -n carequeue --wait --timeout 5m
+Rollback was a success! Happy Helming!
+
+$ kubectl rollout status deployment/carequeue-backend -n carequeue --timeout=180s
+deployment "carequeue-backend" successfully rolled out
+
+# VERIFY (45 s later: no new restarts)
+$ kubectl get pods -n carequeue -l app.kubernetes.io/component=backend
+NAME                                READY   STATUS    RESTARTS   AGE
+carequeue-backend-ffc95c678-4nh2w   1/1     Running   0          50s
+carequeue-backend-ffc95c678-v49dc   1/1     Running   0          55s
+
+$ kubectl get deploy carequeue-backend -n carequeue -o jsonpath='liveness={.spec.template.spec.containers[0].livenessProbe.httpGet.path}{"\n"}'
+liveness=/health
+
+$ helm history carequeue -n carequeue
+REVISION	UPDATED                 	STATUS    	CHART          	APP VERSION	DESCRIPTION     
+1       	Fri Oct 16 20:34:44 2026	superseded	carequeue-1.0.0	1.0.0      	Install complete
+2       	Fri Oct 16 20:44:10 2026	superseded	carequeue-1.0.0	1.0.0      	Upgrade complete
+3       	Fri Oct 16 20:53:10 2026	superseded	carequeue-1.0.0	1.0.0      	Upgrade complete
+4       	Fri Oct 16 20:55:08 2026	deployed  	carequeue-1.0.0	1.0.0      	Rollback to 2   
+
+$ curl -sS http://localhost:8088/api/info; echo
+{"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+
+$ helm test carequeue -n carequeue --logs 2>&1 | grep -E 'Phase|helm test: OK'
+Phase:          Succeeded
+helm test: OK
+
