@@ -1,0 +1,94 @@
+# Backend tests: pytest + coverage, on an in-memory SQLite test DB (never the Postgres DB)
+# 2026-10-16 20:20 IST, Python 3.13.14 venv with backend/requirements-dev.txt
+
+$ cd backend && python -m pytest -v
+============================= test session starts ==============================
+platform darwin -- Python 3.13.14, pytest-9.1.1, pluggy-1.7.0 -- /private/tmp/claude-501/-Users-rudhar-Desktop-NIFTY-Devops-hw-1/bb0ee100-b0a3-4716-aa65-ebcf9f6c0442/scratchpad/cq-venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/rudhar/Desktop/NIFTY/Devops/hw-1/carequeue/backend
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-7.1.0, platformdirs-4.13.3, anyio-4.15.1
+collecting ... collected 51 items
+
+tests/test_appointments.py::test_booking_assigns_sequential_tokens_per_doctor_per_day PASSED [  1%]
+tests/test_appointments.py::test_double_booking_same_slot_is_409 PASSED  [  3%]
+tests/test_appointments.py::test_cancelled_slot_can_be_booked_again_with_a_new_token PASSED [  5%]
+tests/test_appointments.py::test_database_index_blocks_double_booking PASSED [  7%]
+tests/test_appointments.py::test_slot_outside_hours_or_off_grid_is_422 PASSED [  9%]
+tests/test_appointments.py::test_past_slot_and_past_date_are_rejected PASSED [ 11%]
+tests/test_appointments.py::test_inactive_doctor_cannot_be_booked PASSED [ 13%]
+tests/test_appointments.py::test_unknown_patient_or_doctor_is_404 PASSED [ 15%]
+tests/test_appointments.py::test_list_appointments_with_filters PASSED   [ 17%]
+tests/test_appointments.py::test_full_visit_workflow PASSED              [ 19%]
+tests/test_appointments.py::test_invalid_status_transitions_are_409 PASSED [ 21%]
+tests/test_appointments.py::test_no_show_allowed_from_booked_and_checked_in PASSED [ 23%]
+tests/test_appointments.py::test_check_in_only_on_appointment_day PASSED [ 25%]
+tests/test_appointments.py::test_doctor_sees_one_patient_at_a_time PASSED [ 27%]
+tests/test_appointments.py::test_unknown_status_value_is_422 PASSED      [ 29%]
+tests/test_appointments.py::test_reschedule_booked_appointment PASSED    [ 31%]
+tests/test_appointments.py::test_only_booked_appointments_can_be_rescheduled PASSED [ 33%]
+tests/test_appointments.py::test_delete_appointment_rules PASSED         [ 35%]
+tests/test_doctors.py::test_create_and_get_doctor_with_default_hours PASSED [ 37%]
+tests/test_doctors.py::test_list_doctors_filters PASSED                  [ 39%]
+tests/test_doctors.py::test_update_doctor_hours PASSED                   [ 41%]
+tests/test_doctors.py::test_doctor_hours_must_be_ordered PASSED          [ 43%]
+tests/test_doctors.py::test_unknown_doctor_is_404 PASSED                 [ 45%]
+tests/test_doctors.py::test_delete_doctor_without_history_removes_it PASSED [ 47%]
+tests/test_doctors.py::test_delete_doctor_with_appointments_only_deactivates PASSED [ 49%]
+tests/test_doctors.py::test_slot_grid_marks_free_booked_and_past PASSED  [ 50%]
+tests/test_patients.py::test_create_patient_normalises_phone PASSED      [ 52%]
+tests/test_patients.py::test_invalid_phone_is_rejected[12345] PASSED     [ 54%]
+tests/test_patients.py::test_invalid_phone_is_rejected[5876543210] PASSED [ 56%]
+tests/test_patients.py::test_invalid_phone_is_rejected[98765432101] PASSED [ 58%]
+tests/test_patients.py::test_invalid_phone_is_rejected[98765abcde] PASSED [ 60%]
+tests/test_patients.py::test_duplicate_phone_is_409 PASSED               [ 62%]
+tests/test_patients.py::test_future_date_of_birth_is_rejected PASSED     [ 64%]
+tests/test_patients.py::test_invalid_gender_is_rejected PASSED           [ 66%]
+tests/test_patients.py::test_search_by_name_or_phone PASSED              [ 68%]
+tests/test_patients.py::test_update_patient_and_phone_conflict PASSED    [ 70%]
+tests/test_patients.py::test_delete_patient PASSED                       [ 72%]
+tests/test_patients.py::test_patient_with_active_appointment_cannot_be_deleted PASSED [ 74%]
+tests/test_queue.py::test_queue_orders_by_token_and_shows_now_serving PASSED [ 76%]
+tests/test_queue.py::test_empty_queue_and_other_days PASSED              [ 78%]
+tests/test_queue.py::test_queue_requires_existing_doctor PASSED          [ 80%]
+tests/test_queue.py::test_today_stats_count_per_status PASSED            [ 82%]
+tests/test_seed_and_migrations.py::test_seed_is_idempotent PASSED        [ 84%]
+tests/test_seed_and_migrations.py::test_alembic_upgrade_and_downgrade PASSED [ 86%]
+tests/test_system.py::test_health_is_ok_without_database PASSED          [ 88%]
+tests/test_system.py::test_ready_reports_database_up PASSED              [ 90%]
+tests/test_system.py::test_ready_returns_503_when_database_is_down PASSED [ 92%]
+tests/test_system.py::test_info_reports_app_and_commit PASSED            [ 94%]
+tests/test_system.py::test_metrics_expose_http_and_business_metrics PASSED [ 96%]
+tests/test_system.py::test_cors_allows_configured_origin PASSED          [ 98%]
+tests/test_system.py::test_json_log_formatter_includes_extra_fields_and_errors PASSED [100%]
+
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.13.14-final-0 _______________
+
+Name                          Stmts   Miss Branch BrPart  Cover   Missing
+-------------------------------------------------------------------------
+app/__init__.py                   0      0      0      0   100%
+app/config.py                    18      0      0      0   100%
+app/db.py                        16      5      2      1    67%   19, 28-32
+app/logging_config.py            23      0      4      0   100%
+app/main.py                      23      0      4      0   100%
+app/metrics.py                   20      0      2      0   100%
+app/models.py                    57      0      0      0   100%
+app/routers/__init__.py           0      0      0      0   100%
+app/routers/appointments.py      93      3     20      1    96%   38-40, 149->151
+app/routers/doctors.py           62      0     16      0   100%
+app/routers/patients.py          62      3     14      0    96%   35-37
+app/routers/queue.py             31      0      2      0   100%
+app/routers/system.py            22      0      0      0   100%
+app/schemas.py                  142      3     16      3    96%   20, 100, 115
+app/seed.py                      55      9     16      1    86%   116-123, 127
+app/services/__init__.py          0      0      0      0   100%
+app/services/clock.py             6      2      0      0    67%   14-15
+app/services/scheduling.py       44      0     20      0   100%
+-------------------------------------------------------------------------
+TOTAL                           674     25    116      6    96%
+Required test coverage of 80% reached. Total coverage: 96.08%
+============================== 51 passed in 1.19s ==============================
+[exit code: 0]
+

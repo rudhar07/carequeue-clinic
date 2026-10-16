@@ -1,0 +1,11 @@
+# npm audit: runtime dependencies (what ships in the bundle), then the full tree incl. dev tools
+# 2026-10-16 20:20 IST
+
+$ cd frontend && npm audit --omit=dev
+found 0 vulnerabilities
+[exit code: 0]
+
+$ cd frontend && npm audit
+found 0 vulnerabilities
+[exit code: 0]
+

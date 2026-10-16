@@ -1,0 +1,21 @@
+# UI screenshots: headless Chromium (Playwright 1.63, official image) on the compose network -> http://frontend:8080
+# 2026-10-16 20:21 IST
+
+$ docker run --rm --network carequeue_default -e BASE_URL=http://frontend:8080 -e OUT_DIR=/work/docs/screenshots -v "$PWD/scripts:/work/scripts:ro" -v "$PWD/docs/screenshots:/work/docs/screenshots" -w /work mcr.microsoft.com/playwright/python:v1.63.0-noble sh -c 'pip install -q --root-user-action=ignore --break-system-packages playwright==1.63.0 && python scripts/screenshots.py'
+saved /work/docs/screenshots/01-book-appointment-slot-grid.png
+saved /work/docs/screenshots/02-live-queue-now-serving.png
+saved /work/docs/screenshots/03-patients.png
+saved /work/docs/screenshots/04-doctors.png
+saved /work/docs/screenshots/05-mobile-390-live-queue.png
+saved /work/docs/screenshots/06-mobile-390-booking.png
+[exit code: 0]
+
+$ file docs/screenshots/*.png
+docs/screenshots/01-book-appointment-slot-grid.png: PNG image data, 1366 x 900, 8-bit/color RGB, non-interlaced
+docs/screenshots/02-live-queue-now-serving.png:     PNG image data, 1366 x 1080, 8-bit/color RGB, non-interlaced
+docs/screenshots/03-patients.png:                   PNG image data, 1366 x 1157, 8-bit/color RGB, non-interlaced
+docs/screenshots/04-doctors.png:                    PNG image data, 1366 x 900, 8-bit/color RGB, non-interlaced
+docs/screenshots/05-mobile-390-live-queue.png:      PNG image data, 780 x 3092, 8-bit/color RGB, non-interlaced
+docs/screenshots/06-mobile-390-booking.png:         PNG image data, 780 x 2784, 8-bit/color RGB, non-interlaced
+[exit code: 0]
+

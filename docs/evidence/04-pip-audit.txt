@@ -1,0 +1,15 @@
+# Python dependency audit (PyPI advisory DB / OSV)
+# 2026-10-16 20:20 IST
+
+$ pip-audit --version
+pip-audit 2.10.1
+[exit code: 0]
+
+$ pip-audit -r backend/requirements.txt
+No known vulnerabilities found
+[exit code: 0]
+
+$ pip-audit -r backend/requirements-dev.txt
+No known vulnerabilities found
+[exit code: 0]
+
