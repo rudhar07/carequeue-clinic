@@ -1,0 +1,70 @@
+# Trivy steps from GitHub Actions run 38937999333 (commit 1c1def4), job 117098492217 "Docker frontend (build, Trivy, push)"
+# Source: gh api repos/rudhar07/carequeue-clinic/actions/jobs/117098492217/logs  (lines 1166-1231, ANSI colour codes stripped)
+# Steps: 9 "Trivy scan summary" and 10 "Trivy gate (fixable HIGH/CRITICAL fail the pipeline)"
+
+2026-10-16T17:14:19.7005104Z ##[group]Run json="reports/trivy-${COMPONENT}.json"
+2026-10-16T17:14:19.7005531Z json="reports/trivy-${COMPONENT}.json"
+2026-10-16T17:14:19.7005828Z {
+2026-10-16T17:14:19.7006096Z   echo "### Trivy image scan: carequeue-${COMPONENT}"
+2026-10-16T17:14:19.7006430Z   echo ""
+2026-10-16T17:14:19.7006663Z   echo "Image: \`${IMAGE_REF}\`"
+2026-10-16T17:14:19.7006931Z   echo ""
+2026-10-16T17:14:19.7007621Z   echo "OS: $(jq -r '.Metadata.OS | "\(.Family // "?") \(.Name // "")"' "${json}")"
+2026-10-16T17:14:19.7008071Z   echo ""
+2026-10-16T17:14:19.7008307Z   echo "| Severity | All | Fixable |"
+2026-10-16T17:14:19.7008597Z   echo "|---|---|---|"
+2026-10-16T17:14:19.7008894Z   for s in CRITICAL HIGH MEDIUM LOW UNKNOWN; do
+2026-10-16T17:14:19.7009406Z     all=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s)] | length' "${json}")
+2026-10-16T17:14:19.7010172Z     fix=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s and (.FixedVersion // "") != "")] | length' "${json}")
+2026-10-16T17:14:19.7010745Z     echo "| ${s} | ${all} | ${fix} |"
+2026-10-16T17:14:19.7011011Z   done
+2026-10-16T17:14:19.7011204Z   echo ""
+2026-10-16T17:14:19.7011647Z   echo "Gate: fail on fixable HIGH/CRITICAL (\`--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1\`)."
+2026-10-16T17:14:19.7012157Z } >> "$GITHUB_STEP_SUMMARY"
+2026-10-16T17:14:19.7074173Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-16T17:14:19.7074519Z env:
+2026-10-16T17:14:19.7074719Z   PYTHON_VERSION: 3.12
+2026-10-16T17:14:19.7074937Z   NODE_VERSION: 24
+2026-10-16T17:14:19.7075139Z   TRIVY_VERSION: 0.76.0
+2026-10-16T17:14:19.7075364Z   GITLEAKS_VERSION: 8.30.1
+2026-10-16T17:14:19.7075596Z   BANDIT_VERSION: 1.9.4
+2026-10-16T17:14:19.7075813Z   TRIVY_NO_PROGRESS: true
+2026-10-16T17:14:19.7076058Z   KIND_CLUSTER: carequeue-ci
+2026-10-16T17:14:19.7076376Z   COMPONENT: frontend
+2026-10-16T17:14:19.7076723Z   IMAGE: ghcr.io/rudhar07/carequeue-frontend
+2026-10-16T17:14:19.7077474Z   IMAGE_REF: ghcr.io/rudhar07/carequeue-frontend:1c1def4804dbd366db4b0dafbf7bdf74e87ecc8a
+2026-10-16T17:14:19.7078122Z ##[endgroup]
+2026-10-16T17:14:19.7735339Z ##[group]Run trivy image --scanners vuln --skip-db-update \
+2026-10-16T17:14:19.7735793Z trivy image --scanners vuln --skip-db-update \
+2026-10-16T17:14:19.7736218Z   --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+2026-10-16T17:14:19.7736775Z   --format table "${IMAGE_REF}"
+2026-10-16T17:14:19.7795288Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-16T17:14:19.7795634Z env:
+2026-10-16T17:14:19.7795829Z   PYTHON_VERSION: 3.12
+2026-10-16T17:14:19.7796052Z   NODE_VERSION: 24
+2026-10-16T17:14:19.7796261Z   TRIVY_VERSION: 0.76.0
+2026-10-16T17:14:19.7796484Z   GITLEAKS_VERSION: 8.30.1
+2026-10-16T17:14:19.7796715Z   BANDIT_VERSION: 1.9.4
+2026-10-16T17:14:19.7796933Z   TRIVY_NO_PROGRESS: true
+2026-10-16T17:14:19.7797375Z   KIND_CLUSTER: carequeue-ci
+2026-10-16T17:14:19.7797632Z   COMPONENT: frontend
+2026-10-16T17:14:19.7797893Z   IMAGE: ghcr.io/rudhar07/carequeue-frontend
+2026-10-16T17:14:19.7798399Z   IMAGE_REF: ghcr.io/rudhar07/carequeue-frontend:1c1def4804dbd366db4b0dafbf7bdf74e87ecc8a
+2026-10-16T17:14:19.7798843Z ##[endgroup]
+2026-10-16T17:14:19.8443190Z 2026-10-16T17:14:19Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T17:14:19.8533005Z 2026-10-16T17:14:19Z	INFO	Detected OS	family="alpine" version="3.24.2"
+2026-10-16T17:14:19.8534099Z 2026-10-16T17:14:19Z	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=70
+2026-10-16T17:14:19.8614042Z 2026-10-16T17:14:19Z	INFO	Number of language-specific files	num=0
+2026-10-16T17:14:19.8617655Z 
+2026-10-16T17:14:19.8618172Z Report Summary
+2026-10-16T17:14:19.8618407Z 
+2026-10-16T17:14:19.8619265Z ┌──────────────────────────────────────────────────────────────────────────────┬────────┬─────────────────┐
+2026-10-16T17:14:19.8620293Z │                                    Target                                    │  Type  │ Vulnerabilities │
+2026-10-16T17:14:19.8621416Z ├──────────────────────────────────────────────────────────────────────────────┼────────┼─────────────────┤
+2026-10-16T17:14:19.8622685Z │ ghcr.io/rudhar07/carequeue-frontend:1c1def4804dbd366db4b0dafbf7bdf74e87ecc8a │ alpine │        0        │
+2026-10-16T17:14:19.8623824Z │ (alpine 3.24.2)                                                              │        │                 │
+2026-10-16T17:14:19.8624887Z └──────────────────────────────────────────────────────────────────────────────┴────────┴─────────────────┘
+2026-10-16T17:14:19.8625593Z Legend:
+2026-10-16T17:14:19.8625903Z - '-': Not scanned
+2026-10-16T17:14:19.8626298Z - '0': Clean (no security findings detected)
+2026-10-16T17:14:19.8626628Z 

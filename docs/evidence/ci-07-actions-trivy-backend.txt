@@ -1,0 +1,128 @@
+# Trivy steps from GitHub Actions run 38937999333 (commit 1c1def4), job 117098492253 "Docker backend (build, Trivy, push)"
+# Source: gh api repos/rudhar07/carequeue-clinic/actions/jobs/117098492253/logs  (lines 1136-1259, ANSI colour codes stripped)
+# Steps: 9 "Trivy scan summary" and 10 "Trivy gate (fixable HIGH/CRITICAL fail the pipeline)"
+
+2026-10-16T17:14:28.8730186Z ##[group]Run json="reports/trivy-${COMPONENT}.json"
+2026-10-16T17:14:28.8730634Z json="reports/trivy-${COMPONENT}.json"
+2026-10-16T17:14:28.8730929Z {
+2026-10-16T17:14:28.8731185Z   echo "### Trivy image scan: carequeue-${COMPONENT}"
+2026-10-16T17:14:28.8731509Z   echo ""
+2026-10-16T17:14:28.8731736Z   echo "Image: \`${IMAGE_REF}\`"
+2026-10-16T17:14:28.8732007Z   echo ""
+2026-10-16T17:14:28.8732355Z   echo "OS: $(jq -r '.Metadata.OS | "\(.Family // "?") \(.Name // "")"' "${json}")"
+2026-10-16T17:14:28.8732762Z   echo ""
+2026-10-16T17:14:28.8733367Z   echo "| Severity | All | Fixable |"
+2026-10-16T17:14:28.8733695Z   echo "|---|---|---|"
+2026-10-16T17:14:28.8734229Z   for s in CRITICAL HIGH MEDIUM LOW UNKNOWN; do
+2026-10-16T17:14:28.8734762Z     all=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s)] | length' "${json}")
+2026-10-16T17:14:28.8735567Z     fix=$(jq --arg s "$s" '[.Results[]?.Vulnerabilities[]? | select(.Severity == $s and (.FixedVersion // "") != "")] | length' "${json}")
+2026-10-16T17:14:28.8736158Z     echo "| ${s} | ${all} | ${fix} |"
+2026-10-16T17:14:28.8736429Z   done
+2026-10-16T17:14:28.8736627Z   echo ""
+2026-10-16T17:14:28.8737088Z   echo "Gate: fail on fixable HIGH/CRITICAL (\`--severity HIGH,CRITICAL --ignore-unfixed --exit-code 1\`)."
+2026-10-16T17:14:28.8737608Z } >> "$GITHUB_STEP_SUMMARY"
+2026-10-16T17:14:28.8799728Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-16T17:14:28.8800079Z env:
+2026-10-16T17:14:28.8800274Z   PYTHON_VERSION: 3.12
+2026-10-16T17:14:28.8800510Z   NODE_VERSION: 24
+2026-10-16T17:14:28.8800780Z   TRIVY_VERSION: 0.76.0
+2026-10-16T17:14:28.8801002Z   GITLEAKS_VERSION: 8.30.1
+2026-10-16T17:14:28.8801227Z   BANDIT_VERSION: 1.9.4
+2026-10-16T17:14:28.8801438Z   TRIVY_NO_PROGRESS: true
+2026-10-16T17:14:28.8801680Z   KIND_CLUSTER: carequeue-ci
+2026-10-16T17:14:28.8801922Z   COMPONENT: backend
+2026-10-16T17:14:28.8802174Z   IMAGE: ghcr.io/rudhar07/carequeue-backend
+2026-10-16T17:14:28.8802631Z   IMAGE_REF: ghcr.io/rudhar07/carequeue-backend:1c1def4804dbd366db4b0dafbf7bdf74e87ecc8a
+2026-10-16T17:14:28.8803375Z ##[endgroup]
+2026-10-16T17:14:29.0605050Z ##[group]Run trivy image --scanners vuln --skip-db-update \
+2026-10-16T17:14:29.0605524Z trivy image --scanners vuln --skip-db-update \
+2026-10-16T17:14:29.0605956Z   --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+2026-10-16T17:14:29.0606345Z   --format table "${IMAGE_REF}"
+2026-10-16T17:14:29.0668910Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-16T17:14:29.0669304Z env:
+2026-10-16T17:14:29.0669512Z   PYTHON_VERSION: 3.12
+2026-10-16T17:14:29.0669737Z   NODE_VERSION: 24
+2026-10-16T17:14:29.0669949Z   TRIVY_VERSION: 0.76.0
+2026-10-16T17:14:29.0670183Z   GITLEAKS_VERSION: 8.30.1
+2026-10-16T17:14:29.0670423Z   BANDIT_VERSION: 1.9.4
+2026-10-16T17:14:29.0670648Z   TRIVY_NO_PROGRESS: true
+2026-10-16T17:14:29.0670890Z   KIND_CLUSTER: carequeue-ci
+2026-10-16T17:14:29.0671138Z   COMPONENT: backend
+2026-10-16T17:14:29.0671385Z   IMAGE: ghcr.io/rudhar07/carequeue-backend
+2026-10-16T17:14:29.0671895Z   IMAGE_REF: ghcr.io/rudhar07/carequeue-backend:1c1def4804dbd366db4b0dafbf7bdf74e87ecc8a
+2026-10-16T17:14:29.0672353Z ##[endgroup]
+2026-10-16T17:14:29.1340191Z 2026-10-16T17:14:29Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-10-16T17:14:29.1544265Z 2026-10-16T17:14:29Z	INFO	Detected OS	family="debian" version="13.7"
+2026-10-16T17:14:29.1545234Z 2026-10-16T17:14:29Z	INFO	[debian] Detecting vulnerabilities...	os_version="13" pkg_num=87
+2026-10-16T17:14:29.1676887Z 2026-10-16T17:14:29Z	INFO	Number of language-specific files	num=1
+2026-10-16T17:14:29.1677499Z 2026-10-16T17:14:29Z	INFO	[python-pkg] Detecting vulnerabilities...
+2026-10-16T17:14:29.1688262Z 2026-10-16T17:14:29Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.76/guide/scanner/vulnerability#severity-selection for details.
+2026-10-16T17:14:29.1722849Z 
+2026-10-16T17:14:29.1723131Z Report Summary
+2026-10-16T17:14:29.1723432Z 
+2026-10-16T17:14:29.1724627Z ┌──────────────────────────────────────────────────────────────────────────────────┬────────────┬─────────────────┐
+2026-10-16T17:14:29.1725849Z │                                      Target                                      │    Type    │ Vulnerabilities │
+2026-10-16T17:14:29.1727059Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1728478Z │ ghcr.io/rudhar07/carequeue-backend:1c1def4804dbd366db4b0dafbf7bdf74e87ecc8a      │   debian   │        0        │
+2026-10-16T17:14:29.1730134Z │ (debian 13.7)                                                                    │            │                 │
+2026-10-16T17:14:29.1731320Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1732374Z │ usr/local/lib/python3.13/site-packages/alembic-1.20.0.dist-info/METADATA         │ python-pkg │        0        │
+2026-10-16T17:14:29.1733850Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1734737Z │ usr/local/lib/python3.13/site-packages/annotated_doc-0.0.5.dist-info/METADATA    │ python-pkg │        0        │
+2026-10-16T17:14:29.1735640Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1736436Z │ usr/local/lib/python3.13/site-packages/annotated_types-0.8.0.dist-info/METADATA  │ python-pkg │        0        │
+2026-10-16T17:14:29.1737269Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1738084Z │ usr/local/lib/python3.13/site-packages/anyio-4.15.1.dist-info/METADATA           │ python-pkg │        0        │
+2026-10-16T17:14:29.1738940Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1740009Z │ usr/local/lib/python3.13/site-packages/click-8.5.0.dist-info/METADATA            │ python-pkg │        0        │
+2026-10-16T17:14:29.1740861Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1741647Z │ usr/local/lib/python3.13/site-packages/fastapi-0.143.3.dist-info/METADATA        │ python-pkg │        0        │
+2026-10-16T17:14:29.1742484Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1743571Z │ usr/local/lib/python3.13/site-packages/h11-0.16.0.dist-info/METADATA             │ python-pkg │        0        │
+2026-10-16T17:14:29.1744406Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1745202Z │ usr/local/lib/python3.13/site-packages/idna-3.20.dist-info/METADATA              │ python-pkg │        0        │
+2026-10-16T17:14:29.1746049Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1746825Z │ usr/local/lib/python3.13/site-packages/mako-1.4.3.dist-info/METADATA             │ python-pkg │        0        │
+2026-10-16T17:14:29.1747644Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1748421Z │ usr/local/lib/python3.13/site-packages/markupsafe-3.0.4.dist-info/METADATA       │ python-pkg │        0        │
+2026-10-16T17:14:29.1749413Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1750186Z │ usr/local/lib/python3.13/site-packages/opentelemetry_api-1.45.1.dist-info/METAD- │ python-pkg │        0        │
+2026-10-16T17:14:29.1750851Z │ ATA                                                                              │            │                 │
+2026-10-16T17:14:29.1751863Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1752667Z │ usr/local/lib/python3.13/site-packages/prometheus_client-0.26.0.dist-info/METAD- │ python-pkg │        0        │
+2026-10-16T17:14:29.1754366Z │ ATA                                                                              │            │                 │
+2026-10-16T17:14:29.1755614Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1757100Z │ usr/local/lib/python3.13/site-packages/prometheus_fastapi_instrumentator-8.1.0.- │ python-pkg │        0        │
+2026-10-16T17:14:29.1758392Z │ dist-info/METADATA                                                               │            │                 │
+2026-10-16T17:14:29.1759592Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1760867Z │ usr/local/lib/python3.13/site-packages/psycopg-3.3.6.dist-info/METADATA          │ python-pkg │        0        │
+2026-10-16T17:14:29.1762313Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1763905Z │ usr/local/lib/python3.13/site-packages/psycopg_binary-3.3.6.dist-info/METADATA   │ python-pkg │        0        │
+2026-10-16T17:14:29.1765398Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1766961Z │ usr/local/lib/python3.13/site-packages/pydantic-2.14.1.dist-info/METADATA        │ python-pkg │        0        │
+2026-10-16T17:14:29.1768154Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1768973Z │ usr/local/lib/python3.13/site-packages/pydantic_core-2.50.1.dist-info/METADATA   │ python-pkg │        0        │
+2026-10-16T17:14:29.1769806Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1771444Z │ usr/local/lib/python3.13/site-packages/pydantic_settings-2.16.0.dist-info/METAD- │ python-pkg │        0        │
+2026-10-16T17:14:29.1772565Z │ ATA                                                                              │            │                 │
+2026-10-16T17:14:29.1773552Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1774384Z │ usr/local/lib/python3.13/site-packages/python_dotenv-1.2.4.dist-info/METADATA    │ python-pkg │        0        │
+2026-10-16T17:14:29.1775229Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1776010Z │ usr/local/lib/python3.13/site-packages/sqlalchemy-2.1.4.dist-info/METADATA       │ python-pkg │        0        │
+2026-10-16T17:14:29.1776833Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1777620Z │ usr/local/lib/python3.13/site-packages/starlette-1.8.0.dist-info/METADATA        │ python-pkg │        0        │
+2026-10-16T17:14:29.1778438Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1779208Z │ usr/local/lib/python3.13/site-packages/typing_extensions-4.16.0.dist-info/METAD- │ python-pkg │        0        │
+2026-10-16T17:14:29.1780048Z │ ATA                                                                              │            │                 │
+2026-10-16T17:14:29.1780689Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1781454Z │ usr/local/lib/python3.13/site-packages/typing_inspection-0.4.4.dist-info/METADA- │ python-pkg │        0        │
+2026-10-16T17:14:29.1782121Z │ TA                                                                               │            │                 │
+2026-10-16T17:14:29.1782771Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1783803Z │ usr/local/lib/python3.13/site-packages/tzdata-2026.5.dist-info/METADATA          │ python-pkg │        0        │
+2026-10-16T17:14:29.1784627Z ├──────────────────────────────────────────────────────────────────────────────────┼────────────┼─────────────────┤
+2026-10-16T17:14:29.1785400Z │ usr/local/lib/python3.13/site-packages/uvicorn-0.54.0.dist-info/METADATA         │ python-pkg │        0        │
+2026-10-16T17:14:29.1786193Z └──────────────────────────────────────────────────────────────────────────────────┴────────────┴─────────────────┘
+2026-10-16T17:14:29.1786684Z Legend:
+2026-10-16T17:14:29.1787129Z - '-': Not scanned
+2026-10-16T17:14:29.1787465Z - '0': Clean (no security findings detected)
+2026-10-16T17:14:29.1787781Z 

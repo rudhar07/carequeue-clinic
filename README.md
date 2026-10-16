@@ -111,7 +111,12 @@ changed with `FRONTEND_PORT=3001 docker compose up --build`.
 
 Evidence: [05-compose-up.txt](docs/evidence/05-compose-up.txt) (all 3 services healthy),
 [06-api-flow.txt](docs/evidence/06-api-flow.txt) (full booking flow through the nginx proxy),
-[07-nonroot.txt](docs/evidence/07-nonroot.txt) (backend uid 10001, frontend uid 101).
+[07-nonroot.txt](docs/evidence/07-nonroot.txt) (backend uid 10001, frontend uid 101),
+[11-compose-localhost-3000.txt](docs/evidence/11-compose-localhost-3000.txt) (`docker compose ps` and `/api/info` through :3000).
+
+| `http://localhost:3000` (compose): live queue | booking |
+|---|---|
+| ![compose queue](docs/screenshots/08-compose-localhost-3000-live-queue.png) | ![compose book](docs/screenshots/09-compose-localhost-3000-book.png) |
 
 ## 4. Tests
 
@@ -125,7 +130,13 @@ cd frontend && npm ci && npm test -- --run
   and coverage is 96% with an 80% minimum enforced in `pytest.ini`.
 - **Frontend:** 11 Vitest + Testing Library tests.
 
-Evidence: [01-pytest.txt](docs/evidence/01-pytest.txt), [02-frontend-build-test.txt](docs/evidence/02-frontend-build-test.txt).
+Evidence: [10-pytest-v.txt](docs/evidence/10-pytest-v.txt) (`pytest -v` at `1c1def4`: 52 passed, 96.12%),
+[01-pytest.txt](docs/evidence/01-pytest.txt) (first run), [02-frontend-build-test.txt](docs/evidence/02-frontend-build-test.txt).
+
+<details><summary><code>pytest -v</code> screenshot</summary>
+
+![pytest -v](docs/screenshots/07-terminal-pytest-v-passing.png)
+</details>
 
 ## 5. CI/CD pipeline
 
@@ -161,6 +172,21 @@ It was green first time, all 7 jobs, for commit `beb400a`.
 | Compose end-to-end (booking flow through nginx) | success |
 | Deploy to Kubernetes (kind + Helm) | success: `helm test` passed, and the deployed `/api/info` reported `GIT_SHA beb400ab…` |
 
+**Latest run:** https://github.com/rudhar07/carequeue-clinic/actions/runs/38937999333 (commit
+`1c1def4`, all 7 jobs green). The images for both commits are in GHCR, tagged with the full SHA:
+[carequeue-backend](https://github.com/users/rudhar07/packages/container/package/carequeue-backend),
+[carequeue-frontend](https://github.com/users/rudhar07/packages/container/package/carequeue-frontend).
+
+| Green run (`1c1def4`) | Run history |
+|---|---|
+| ![run](docs/screenshots/ci-01-actions-run-green.png) | ![history](docs/screenshots/ci-02-actions-run-history.png) |
+
+| GHCR backend: SHA tags | GHCR frontend: SHA tags |
+|---|---|
+| ![ghcr backend](docs/screenshots/ghcr-01-backend-sha-tags.png) | ![ghcr frontend](docs/screenshots/ghcr-02-frontend-sha-tags.png) |
+
+Commit history on `main`: ![commits](docs/screenshots/ci-04-commit-history.png)
+
 ## 6. Security scanning
 
 | Tool | What it scans | Gate |
@@ -177,6 +203,15 @@ available fix in either image**, so the gate passed. The backend base image does
 Debian packages that have no patched version yet; `--ignore-unfixed` reports them without blocking,
 because no upgrade exists to apply. The gate does work: an old `nginx` image made it exit 1
 ([ci-05](docs/evidence/ci-05-docker-trivy-steps.txt)). Local scan: [08-trivy-images.txt](docs/evidence/08-trivy-images.txt).
+
+**Trivy step output in the pipeline** (run 38937999333, steps "Trivy scan summary" and "Trivy gate").
+GitHub only shows job logs to signed-in users, so these were taken from the job logs through the
+Actions API (`gh api repos/rudhar07/carequeue-clinic/actions/jobs/<id>/logs`):
+[backend](docs/evidence/ci-07-actions-trivy-backend.txt), [frontend](docs/evidence/ci-07-actions-trivy-frontend.txt).
+
+| Backend image: Trivy gate | Frontend image: Trivy gate |
+|---|---|
+| ![trivy backend](docs/screenshots/ci-03-trivy-step-backend.png) | ![trivy frontend](docs/screenshots/ci-03-trivy-step-frontend.png) |
 
 ## 7. Terraform: AWS VPC + EKS
 
@@ -270,11 +305,11 @@ and the verification.
 | Module | Where |
 |---|---|
 | M1 Application | `backend/app/`, `backend/alembic/versions/0001_create_clinic_tables.py`, `frontend/src/`, `docker-compose.yml`, screenshots in section 2 |
-| M2 Testing | `backend/tests/`, `backend/pytest.ini`, `backend/tests/conftest.py`, [01-pytest.txt](docs/evidence/01-pytest.txt) |
-| M3 Git/GitHub | this public repo, commit history, [.gitignore](.gitignore) (`.env`, `__pycache__`, `node_modules`, `.venv`) |
-| M4 Docker | `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage), non-root ([07](docs/evidence/07-nonroot.txt)), compose ([05](docs/evidence/05-compose-up.txt)) |
-| M5 CI/CD | `.github/workflows/ci-cd.yml`, run link in section 5, GHCR packages with SHA tags |
-| M6 DevSecOps | Trivy steps in the workflow, explanation in section 6 |
+| M2 Testing | `backend/tests/`, `backend/pytest.ini`, `backend/tests/conftest.py`, [10-pytest-v.txt](docs/evidence/10-pytest-v.txt), `pytest -v` screenshot in section 4 |
+| M3 Git/GitHub | this public repo, commit history ([screenshot](docs/screenshots/ci-04-commit-history.png)), [.gitignore](.gitignore) (`.env`, `__pycache__`, `node_modules`, `.venv`) |
+| M4 Docker | `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage), non-root ([07](docs/evidence/07-nonroot.txt)), compose ([05](docs/evidence/05-compose-up.txt), [11](docs/evidence/11-compose-localhost-3000.txt), `localhost:3000` screenshots in section 3) |
+| M5 CI/CD | `.github/workflows/ci-cd.yml`, green run links and screenshots in section 5, GHCR packages with SHA tags (screenshots in section 5) |
+| M6 DevSecOps | Trivy steps in the workflow, explanation and pipeline Trivy output in section 6 |
 | M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), AWS evidence in section 7 |
 | M8 Kubernetes + Helm | `k8s/namespace.yaml`, `helm/carequeue/`, section 8 screenshots |
 | M9 Observability | `/metrics`, `monitoring/`, section 9 screenshots |

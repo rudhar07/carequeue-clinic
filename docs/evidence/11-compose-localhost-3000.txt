@@ -1,0 +1,14 @@
+# docker compose up --build on the host, UI published on http://localhost:3000
+# 2026-10-16 23:04 IST, commit 1c1def4
+
+$ docker compose ps
+SERVICE    IMAGE                                                                                        STATUS                   PORTS
+backend    carequeue-backend:dev                                                                        Up 5 minutes (healthy)   8000/tcp
+db         postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24   Up 5 minutes (healthy)   5432/tcp
+frontend   carequeue-frontend:dev                                                                       Up 5 minutes (healthy)   0.0.0.0:3000->8080/tcp, [::]:3000->8080/tcp
+
+$ curl -s http://localhost:3000/api/info
+{"app":"carequeue","version":"1.0.0","commit":"local"}
+
+$ curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3000/
+200
