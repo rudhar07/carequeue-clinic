@@ -1,0 +1,14 @@
+# Keep the build context (and the image) to the app, migrations and entrypoint.
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+tests/
+reports/
+*.db
+.env
+.env.*
+Dockerfile
+.dockerignore
