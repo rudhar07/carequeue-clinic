@@ -228,7 +228,9 @@ cost) is in [docs/TERRAFORM.md](docs/TERRAFORM.md).
 Offline checks: fmt, validate, tflint and a Trivy config scan, all clean ([tf-01…tf-03](docs/evidence/)).
 A plan against a local AWS mock produced 51 resources ([tf-04](docs/evidence/tf-04-plan-against-local-mock.txt)).
 
-**AWS run (plan, apply, Console, destroy):** <!-- AWS-EVIDENCE: added after the real AWS session -->
+**AWS run (plan, apply, Console, destroy):** not done against a real AWS account for this
+submission. The configuration is validated and planned offline (above); the steps to apply and
+destroy it on a real account are in [docs/TERRAFORM.md](docs/TERRAFORM.md).
 
 ## 8. Kubernetes + Helm
 
@@ -310,7 +312,7 @@ and the verification.
 | M4 Docker | `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage), non-root ([07](docs/evidence/07-nonroot.txt)), compose ([05](docs/evidence/05-compose-up.txt), [11](docs/evidence/11-compose-localhost-3000.txt), `localhost:3000` screenshots in section 3) |
 | M5 CI/CD | `.github/workflows/ci-cd.yml`, green run links and screenshots in section 5, GHCR packages with SHA tags (screenshots in section 5) |
 | M6 DevSecOps | Trivy steps in the workflow, explanation and pipeline Trivy output in section 6 |
-| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), AWS evidence in section 7 |
+| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), offline validation and mock plan in section 7 |
 | M8 Kubernetes + Helm | `k8s/namespace.yaml`, `helm/carequeue/`, section 8 screenshots |
 | M9 Observability | `/metrics`, `monitoring/`, section 9 screenshots |
 | M10 Docs + demo | this README; live demo: commit a change → pipeline → new SHA deployed |
