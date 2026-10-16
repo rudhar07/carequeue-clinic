@@ -228,9 +228,14 @@ cost) is in [docs/TERRAFORM.md](docs/TERRAFORM.md).
 Offline checks: fmt, validate, tflint and a Trivy config scan, all clean ([tf-01…tf-03](docs/evidence/)).
 A plan against a local AWS mock produced 51 resources ([tf-04](docs/evidence/tf-04-plan-against-local-mock.txt)).
 
-**AWS run (plan, apply, Console, destroy):** not done against a real AWS account for this
-submission. The configuration is validated and planned offline (above); the steps to apply and
-destroy it on a real account are in [docs/TERRAFORM.md](docs/TERRAFORM.md).
+**AWS run (plan, apply, Console, destroy):** not completed for this submission. A real
+`terraform init` + `plan` against an AWS account (ap-south-1) authenticated and initialised, but the
+plan failed with **403 UnauthorizedOperation**: the account belongs to an AWS Organization whose
+service control policy explicitly denies EC2 and EKS calls in every region tried (ap-south-1,
+us-east-1, us-west-2). An IAM policy on the user cannot override an SCP deny, so nothing was created
+and there is nothing to destroy. Transcript, account IDs masked:
+[tf-05-real-aws-plan-blocked-by-scp.txt](docs/evidence/tf-05-real-aws-plan-blocked-by-scp.txt).
+The steps to apply and destroy on an unrestricted account are in [docs/TERRAFORM.md](docs/TERRAFORM.md).
 
 ## 8. Kubernetes + Helm
 
@@ -312,7 +317,7 @@ and the verification.
 | M4 Docker | `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage), non-root ([07](docs/evidence/07-nonroot.txt)), compose ([05](docs/evidence/05-compose-up.txt), [11](docs/evidence/11-compose-localhost-3000.txt), `localhost:3000` screenshots in section 3) |
 | M5 CI/CD | `.github/workflows/ci-cd.yml`, green run links and screenshots in section 5, GHCR packages with SHA tags (screenshots in section 5) |
 | M6 DevSecOps | Trivy steps in the workflow, explanation and pipeline Trivy output in section 6 |
-| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), offline validation and mock plan in section 7 |
+| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), offline validation, mock plan and the real AWS plan attempt (blocked by an org SCP) in section 7 |
 | M8 Kubernetes + Helm | `k8s/namespace.yaml`, `helm/carequeue/`, section 8 screenshots |
 | M9 Observability | `/metrics`, `monitoring/`, section 9 screenshots |
 | M10 Docs + demo | this README; live demo: commit a change → pipeline → new SHA deployed |
