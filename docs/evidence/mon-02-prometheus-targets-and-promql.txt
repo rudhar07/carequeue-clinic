@@ -1,0 +1,162 @@
+# Prometheus (kube-prometheus-stack) scraping CareQueue (2026-10-16T15:18:16Z). Reached with:
+#   kubectl -n monitoring port-forward svc/kps-prometheus 19090:9090
+
+$ kubectl get servicemonitor -n carequeue carequeue-backend -o jsonpath='{.spec}' | jq .
+{
+  "endpoints": [
+    {
+      "interval": "15s",
+      "path": "/metrics",
+      "port": "http",
+      "scrapeTimeout": "10s"
+    }
+  ],
+  "namespaceSelector": {
+    "matchNames": [
+      "carequeue"
+    ]
+  },
+  "selector": {
+    "matchLabels": {
+      "app.kubernetes.io/component": "backend",
+      "app.kubernetes.io/instance": "carequeue",
+      "app.kubernetes.io/name": "carequeue"
+    }
+  }
+}
+
+$ curl -s http://localhost:19090/api/v1/targets?state=active | jq '[.data.activeTargets[] | select(.labels.job=="carequeue-backend") | {scrapePool, scrapeUrl, health, pod: .labels.pod, lastScrape, lastError}]'
+[
+  {
+    "scrapePool": "serviceMonitor/carequeue/carequeue-backend/0",
+    "scrapeUrl": "http://10.244.0.31:8000/metrics",
+    "health": "up",
+    "pod": "carequeue-backend-ffc95c678-5rhcs",
+    "lastScrape": "2026-10-16T15:18:13.17658546Z",
+    "lastError": ""
+  },
+  {
+    "scrapePool": "serviceMonitor/carequeue/carequeue-backend/0",
+    "scrapeUrl": "http://10.244.0.10:8000/metrics",
+    "health": "up",
+    "pod": "carequeue-backend-ffc95c678-hszdb",
+    "lastScrape": "2026-10-16T15:18:04.947864047Z",
+    "lastError": ""
+  },
+  {
+    "scrapePool": "serviceMonitor/carequeue/carequeue-backend/0",
+    "scrapeUrl": "http://10.244.0.9:8000/metrics",
+    "health": "up",
+    "pod": "carequeue-backend-ffc95c678-dftrl",
+    "lastScrape": "2026-10-16T15:18:10.987703417Z",
+    "lastError": ""
+  },
+  {
+    "scrapePool": "serviceMonitor/carequeue/carequeue-backend/0",
+    "scrapeUrl": "http://10.244.0.29:8000/metrics",
+    "health": "up",
+    "pod": "carequeue-backend-ffc95c678-dmrqc",
+    "lastScrape": "2026-10-16T15:18:13.05944471Z",
+    "lastError": ""
+  },
+  {
+    "scrapePool": "serviceMonitor/carequeue/carequeue-backend/0",
+    "scrapeUrl": "http://10.244.0.28:8000/metrics",
+    "health": "up",
+    "pod": "carequeue-backend-ffc95c678-zp2nm",
+    "lastScrape": "2026-10-16T15:18:09.075272666Z",
+    "lastError": ""
+  },
+  {
+    "scrapePool": "serviceMonitor/carequeue/carequeue-backend/0",
+    "scrapeUrl": "http://10.244.0.30:8000/metrics",
+    "health": "up",
+    "pod": "carequeue-backend-ffc95c678-nj72x",
+    "lastScrape": "2026-10-16T15:18:02.806396254Z",
+    "lastError": ""
+  }
+]
+
+$ curl -s http://localhost:19090/api/v1/targets?state=active | jq -r '.data.activeTargets[] | "\(.labels.job) \(.health)"' | sort | uniq -c
+   1 apiserver up
+   6 carequeue-backend up
+   2 coredns up
+   2 kps-alertmanager up
+   1 kps-grafana up
+   1 kps-operator up
+   2 kps-prometheus up
+   1 kube-state-metrics up
+   3 kubelet up
+   1 node-exporter up
+
+# PromQL on the app metrics (taken during the HPA load test):
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=up{job="carequeue-backend"}' | jq
+{"metric":{"__name__":"up","container":"backend","endpoint":"http","instance":"10.244.0.10:8000","job":"carequeue-backend","namespace":"carequeue","pod":"carequeue-backend-ffc95c678-hszdb","service":"carequeue-backend"},"value":"1"}
+{"metric":{"__name__":"up","container":"backend","endpoint":"http","instance":"10.244.0.9:8000","job":"carequeue-backend","namespace":"carequeue","pod":"carequeue-backend-ffc95c678-dftrl","service":"carequeue-backend"},"value":"1"}
+{"metric":{"__name__":"up","container":"backend","endpoint":"http","instance":"10.244.0.28:8000","job":"carequeue-backend","namespace":"carequeue","pod":"carequeue-backend-ffc95c678-zp2nm","service":"carequeue-backend"},"value":"1"}
+{"metric":{"__name__":"up","container":"backend","endpoint":"http","instance":"10.244.0.29:8000","job":"carequeue-backend","namespace":"carequeue","pod":"carequeue-backend-ffc95c678-dmrqc","service":"carequeue-backend"},"value":"1"}
+{"metric":{"__name__":"up","container":"backend","endpoint":"http","instance":"10.244.0.31:8000","job":"carequeue-backend","namespace":"carequeue","pod":"carequeue-backend-ffc95c678-5rhcs","service":"carequeue-backend"},"value":"1"}
+{"metric":{"__name__":"up","container":"backend","endpoint":"http","instance":"10.244.0.30:8000","job":"carequeue-backend","namespace":"carequeue","pod":"carequeue-backend-ffc95c678-nj72x","service":"carequeue-backend"},"value":"1"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=sum by (handler) (rate(http_requests_total{namespace="carequeue"}[1m]))' | jq
+{"metric":{"handler":"/api/info"},"value":"0"}
+{"metric":{"handler":"/api/doctors"},"value":"18.622484459227262"}
+{"metric":{"handler":"/api/patients"},"value":"36.5338266936313"}
+{"metric":{"handler":"/api/doctors/{doctor_id}/slots"},"value":"17.82247655775126"}
+{"metric":{"handler":"/api/appointments"},"value":"18.28914124834104"}
+{"metric":{"handler":"/api/appointments/{appointment_id}/status"},"value":"0"}
+{"metric":{"handler":"/api/queue"},"value":"36.3546247174886"}
+{"metric":{"handler":"/api/stats/today"},"value":"19.129280137164095"}
+{"metric":{"handler":"/api/doctors/{doctor_id}"},"value":"17.622450876785415"}
+{"metric":{"handler":"/api/appointments/{appointment_id}"},"value":"0"}
+{"metric":{"handler":"/api/patients/{patient_id}"},"value":"0"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=sum by (status) (rate(http_requests_total{namespace="carequeue"}[1m]))' | jq
+{"metric":{"status":"200"},"value":"128.79825009831066"}
+{"metric":{"status":"201"},"value":"0"}
+{"metric":{"status":"422"},"value":"17.955045937515116"}
+{"metric":{"status":"409"},"value":"0"}
+{"metric":{"status":"404"},"value":"17.622450876785415"}
+{"metric":{"status":"204"},"value":"0"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="carequeue"}[5m])))' | jq
+{"metric":{},"value":"0.4609278293369993"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=100 * sum(rate(http_requests_total{namespace="carequeue", status=~"5.."}[5m])) / sum(rate(http_requests_total{namespace="carequeue"}[5m]))' | jq
+(empty result: no request has returned a 5xx yet, so there is no status=~"5.." series to divide;
+ the dashboard and the alert use 'or vector(0)' / clamp_min for this case)
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=sum(carequeue_appointments_booked_total)' | jq
+{"metric":{},"value":"4"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=sum by (status) (carequeue_appointments_status_total)' | jq
+{"metric":{"status":"booked"},"value":"4"}
+{"metric":{"status":"checked_in"},"value":"4"}
+{"metric":{"status":"no_show"},"value":"2"}
+{"metric":{"status":"in_consultation"},"value":"2"}
+{"metric":{"status":"completed"},"value":"2"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=max by (doctor) (carequeue_queue_waiting)' | jq
+{"metric":{"doctor":"Dr. Nikhil Bose"},"value":"1"}
+{"metric":{"doctor":"Dr. Ananya Iyer"},"value":"3"}
+{"metric":{"doctor":"Dr. Rohan Mehta"},"value":"3"}
+{"metric":{"doctor":"Dr. Kavya Reddy"},"value":"3"}
+{"metric":{"doctor":"Dr. Arjun Singh"},"value":"2"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=kube_horizontalpodautoscaler_status_current_replicas{namespace="carequeue"}' | jq
+{"metric":{"__name__":"kube_horizontalpodautoscaler_status_current_replicas","container":"kube-state-metrics","endpoint":"http","horizontalpodautoscaler":"carequeue-frontend","instance":"10.244.0.20:8080","job":"kube-state-metrics","namespace":"carequeue","pod":"kps-kube-state-metrics-785544b94f-xf9jq","service":"kps-kube-state-metrics"},"value":"2"}
+{"metric":{"__name__":"kube_horizontalpodautoscaler_status_current_replicas","container":"kube-state-metrics","endpoint":"http","horizontalpodautoscaler":"carequeue-backend","instance":"10.244.0.20:8080","job":"kube-state-metrics","namespace":"carequeue","pod":"kps-kube-state-metrics-785544b94f-xf9jq","service":"kps-kube-state-metrics"},"value":"6"}
+
+$ curl -s http://localhost:19090/api/v1/query --data-urlencode 'query=sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="carequeue", container="backend"}[2m]))' | jq
+{"metric":{"pod":"carequeue-backend-ffc95c678-hszdb"},"value":"0.2415894195620869"}
+{"metric":{"pod":"carequeue-backend-ffc95c678-dftrl"},"value":"0.24711167915562934"}
+{"metric":{"pod":"carequeue-backend-ffc95c678-zp2nm"},"value":"0.16523048551898745"}
+{"metric":{"pod":"carequeue-backend-ffc95c678-dmrqc"},"value":"0.15405367593417094"}
+{"metric":{"pod":"carequeue-backend-ffc95c678-5rhcs"},"value":"0.11229442051601458"}
+{"metric":{"pod":"carequeue-backend-ffc95c678-nj72x"},"value":"0.11923549996940196"}
+
+# The CareQueue PrometheusRule is loaded:
+$ curl -s http://localhost:19090/api/v1/rules | jq '.data.groups[] | select(.name=="carequeue.rules") | .rules[] | {alert: .name, state, health, query}'
+{"alert":"CareQueueBackendDown","state":"inactive","health":"ok","query":"(sum(up{namespace=\"carequeue\",service=\"carequeue-backend\"}) or vector(0)) == 0"}
+{"alert":"CareQueueHigh5xxRate","state":"inactive","health":"ok","query":"100 * sum(rate(http_requests_total{namespace=\"carequeue\",service=\"carequeue-backend\",status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_requests_total{namespace=\"carequeue\",service=\"carequeue-backend\"}[5m])), 0.001) > 5"}
+{"alert":"CareQueueQueueTooLong","state":"inactive","health":"ok","query":"max by (doctor) (carequeue_queue_waiting{namespace=\"carequeue\",service=\"carequeue-backend\"}) > 10"}

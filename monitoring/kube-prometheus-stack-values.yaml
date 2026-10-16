@@ -1,0 +1,105 @@
+# kube-prometheus-stack values for CareQueue: a lean Prometheus + Grafana that
+# fits on a laptop kind cluster next to the app (Docker Desktop with ~8 GB).
+#
+#   helm upgrade --install kps kube-prometheus-stack \
+#     --repo https://prometheus-community.github.io/helm-charts --version 92.9.0 \
+#     -n monitoring --create-namespace -f monitoring/kube-prometheus-stack-values.yaml
+#
+# See monitoring/README.md for the full steps.
+
+fullnameOverride: kps
+
+# ------------------------------------------------------------------ Prometheus
+prometheus:
+  prometheusSpec:
+    retention: 6h
+    retentionSize: 1GB
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+    # Pick up ServiceMonitors / PodMonitors / PrometheusRules from every
+    # namespace, with or without a "release: kps" label. The CareQueue chart
+    # creates its ServiceMonitor and PrometheusRule in the carequeue namespace.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 100m, memory: 384Mi}
+      limits: {memory: 1Gi}
+    # emptyDir storage: 6 h of demo data does not need a PVC.
+
+# ---------------------------------------------------------------- Alertmanager
+# Small, so the CareQueue PrometheusRule alerts have somewhere to go.
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}
+      limits: {memory: 128Mi}
+
+# --------------------------------------------------------------------- Grafana
+grafana:
+  # No password in Git: empty = the Grafana chart generates a random one,
+  # stores it in the Secret kps-grafana (key admin-password) and keeps it across
+  # upgrades (older kube-prometheus-stack versions defaulted to "prom-operator").
+  # Read it from the Secret; never commit it.
+  adminUser: admin
+  adminPassword: ""
+  resources:
+    requests: {cpu: 50m, memory: 192Mi}
+    limits: {memory: 512Mi}   # 256Mi was OOMKilled while loading dashboards
+  sidecar:
+    dashboards:
+      enabled: true
+      # ConfigMaps labelled grafana_dashboard="1" in ANY namespace become
+      # dashboards (the ConfigMap carequeue-grafana-dashboard is created by
+      # scripts/monitoring-up.sh from grafana-dashboard-carequeue.json).
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: ALL
+      folderAnnotation: grafana_folder
+      provider:
+        foldersFromFilesStructure: true
+    resources:
+      requests: {cpu: 10m, memory: 64Mi}
+      limits: {memory: 128Mi}
+  persistence:
+    enabled: false
+  defaultDashboardsTimezone: browser
+
+# --------------------------------------------------------- cluster components
+kube-state-metrics:
+  resources:
+    requests: {cpu: 10m, memory: 48Mi}
+    limits: {memory: 128Mi}
+
+prometheus-node-exporter:
+  resources:
+    requests: {cpu: 10m, memory: 24Mi}
+    limits: {memory: 64Mi}
+
+prometheusOperator:
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+    limits: {memory: 192Mi}
+
+# kind runs etcd, the scheduler, the controller manager and kube-proxy with
+# metrics bound to 127.0.0.1 inside the node, so Prometheus cannot reach them
+# and the targets would only show as DOWN. Not scraped here (EKS hides the
+# control plane anyway).
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  create: true
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false

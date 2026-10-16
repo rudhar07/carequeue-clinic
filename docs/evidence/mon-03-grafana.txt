@@ -1,0 +1,108 @@
+# Grafana (kube-prometheus-stack) health and the provisioned CareQueue dashboard (2026-10-16T15:32:55Z)
+#   kubectl -n monitoring port-forward svc/kps-grafana 13001:80
+#   GRAFANA_PASSWORD read from Secret kps-grafana into a shell variable (never written to a file)
+$ kubectl get pods -n monitoring
+NAME                                      READY   STATUS    RESTARTS   AGE
+alertmanager-kps-alertmanager-0           2/2     Running   0          23m
+kps-grafana-6c9798f856-9ldhf              3/3     Running   0          25m
+kps-kube-state-metrics-785544b94f-xf9jq   1/1     Running   0          25m
+kps-operator-57cd959b74-wcztn             1/1     Running   0          25m
+kps-prometheus-node-exporter-lv7zj        1/1     Running   0          25m
+prometheus-kps-prometheus-0               2/2     Running   0          23m
+
+$ kubectl get svc -n monitoring
+NAME                           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+alertmanager-operated          ClusterIP   None            <none>        9093/TCP,9094/TCP,9094/UDP   23m
+kps-alertmanager               ClusterIP   10.96.50.251    <none>        9093/TCP,8080/TCP            25m
+kps-grafana                    ClusterIP   10.96.42.85     <none>        80/TCP                       25m
+kps-kube-state-metrics         ClusterIP   10.96.232.89    <none>        8080/TCP                     25m
+kps-operator                   ClusterIP   10.96.129.172   <none>        443/TCP                      25m
+kps-prometheus                 ClusterIP   10.96.90.198    <none>        9090/TCP,8080/TCP            25m
+kps-prometheus-node-exporter   ClusterIP   10.96.10.39     <none>        9100/TCP                     25m
+prometheus-operated            ClusterIP   None            <none>        9090/TCP                     23m
+
+$ kubectl get configmap -n monitoring -l grafana_dashboard=1
+NAME                                    DATA   AGE
+carequeue-grafana-dashboard             1      23m
+kps-alertmanager-overview               1      25m
+kps-apiserver                           1      25m
+kps-cluster-total                       1      25m
+kps-grafana-overview                    1      25m
+kps-k8s-coredns                         1      25m
+kps-k8s-resources-cluster               1      25m
+kps-k8s-resources-multicluster          1      25m
+kps-k8s-resources-namespace             1      25m
+kps-k8s-resources-node                  1      25m
+kps-k8s-resources-nodes-overview        1      25m
+kps-k8s-resources-pod                   1      25m
+kps-k8s-resources-workload              1      25m
+kps-k8s-resources-workloads-namespace   1      25m
+kps-kubelet                             1      25m
+kps-namespace-by-pod                    1      25m
+kps-namespace-by-workload               1      25m
+kps-node-cluster-rsrc-use               1      25m
+kps-node-rsrc-use                       1      25m
+kps-nodes                               1      25m
+kps-nodes-aix                           1      25m
+kps-nodes-darwin                        1      25m
+kps-persistentvolumesusage              1      25m
+kps-pod-total                           1      25m
+kps-prometheus                          1      25m
+kps-workload-total                      1      25m
+
+$ curl -s http://localhost:13001/api/health
+{
+  "database": "ok",
+  "version": "13.2.4",
+  "commit": "0e79aef9d91abf3bdadae9af15763029072fb45b"
+}
+$ curl -s -u "admin:$GRAFANA_PASSWORD" "http://localhost:13001/api/search?query=CareQueue" | jq
+[
+  {
+    "uid": "eg1euu0ukm8e8e",
+    "title": "CareQueue",
+    "type": "dash-folder",
+    "folderTitle": null,
+    "url": "/dashboards/f/eg1euu0ukm8e8e/carequeue"
+  },
+  {
+    "uid": "carequeue",
+    "title": "CareQueue - Clinic API",
+    "type": "dash-db",
+    "folderTitle": "CareQueue",
+    "url": "/d/carequeue/carequeue-clinic-api"
+  }
+]
+
+$ curl -s -u "admin:$GRAFANA_PASSWORD" http://localhost:13001/api/dashboards/uid/carequeue | jq ".dashboard.panels[] | .title"
+Backend targets UP
+Requests / s
+5xx error rate (5m)
+p95 latency (5m)
+Appointments booked (since pod start)
+Backend replicas (HPA)
+HTTP request rate by handler
+p95 latency by handler
+Responses by status code
+5xx error rate
+Appointments booked (per 5 min)
+Queue: patients waiting by doctor
+Pod CPU (cores)
+Pod memory (working set)
+HPA replicas
+
+$ curl -s -u "admin:$GRAFANA_PASSWORD" http://localhost:13001/api/datasources | jq "[.[] | {name, type, uid, url, isDefault}]"
+[{"name":"Alertmanager","type":"alertmanager","uid":"alertmanager","url":"http://kps-alertmanager.monitoring:9093/","isDefault":false},{"name":"Prometheus","type":"prometheus","uid":"prometheus","url":"http://kps-prometheus.monitoring:9090/","isDefault":true}]
+$ kubectl top pods -n monitoring
+NAME                                      CPU(cores)   MEMORY(bytes)   
+alertmanager-kps-alertmanager-0           17m          37Mi            
+kps-grafana-6c9798f856-9ldhf              102m         427Mi           
+kps-kube-state-metrics-785544b94f-xf9jq   26m          23Mi            
+kps-operator-57cd959b74-wcztn             75m          25Mi            
+kps-prometheus-node-exporter-lv7zj        19m          11Mi            
+prometheus-kps-prometheus-0               231m         452Mi           
+
+$ kubectl top nodes
+NAME               CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)   
+cq-control-plane   3447m        22%      3598Mi          45%         
+
