@@ -55,6 +55,17 @@ def test_metrics_expose_http_and_business_metrics(client, book, set_status):
     assert 'carequeue_queue_waiting{doctor="Dr. Ananya Iyer"} 1.0' in text
 
 
+def test_queue_gauge_drops_series_for_removed_doctor(client, book, set_status):
+    appt = book()
+    set_status(appt["id"], "checked_in")
+    client.get("/api/stats/today")
+    assert 'carequeue_queue_waiting{doctor="Dr. Ananya Iyer"}' in client.get("/metrics").text
+
+    assert client.delete(f"/api/doctors/{appt['doctor_id']}").status_code in (200, 204)
+    client.get("/api/stats/today")
+    assert 'carequeue_queue_waiting{doctor="Dr. Ananya Iyer"}' not in client.get("/metrics").text
+
+
 def test_cors_allows_configured_origin(client):
     response = client.options(
         "/api/doctors",

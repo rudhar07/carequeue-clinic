@@ -27,6 +27,9 @@ QUEUE_WAITING = Gauge(
     "Checked-in patients waiting to be called in today, per doctor",
     ["doctor"],
 )
+# Doctor labels currently published on QUEUE_WAITING, so series for doctors who
+# were deleted, deactivated or renamed can be dropped instead of going stale.
+_published_doctors: set[str] = set()
 
 
 def setup_metrics(app: FastAPI) -> None:
@@ -47,11 +50,13 @@ def refresh_queue_gauge(db: Session, doctor: Doctor, today: date) -> int:
         )
     ) or 0
     QUEUE_WAITING.labels(doctor=doctor.full_name).set(waiting)
+    _published_doctors.add(doctor.full_name)
     return waiting
 
 
 def refresh_all_queue_gauges(db: Session, today: date) -> None:
-    """Publish the waiting count of every active doctor in one grouped query."""
+    """Publish the waiting count of every active doctor in one grouped query,
+    and drop the series of doctors who are no longer active."""
     counts = dict(
         db.execute(
             select(Appointment.doctor_id, func.count(Appointment.id))
@@ -62,5 +67,11 @@ def refresh_all_queue_gauges(db: Session, today: date) -> None:
             .group_by(Appointment.doctor_id)
         ).all()
     )
+    active = set()
     for doctor in db.scalars(select(Doctor).where(Doctor.is_active.is_(True))):
         QUEUE_WAITING.labels(doctor=doctor.full_name).set(counts.get(doctor.id, 0))
+        active.add(doctor.full_name)
+    for stale in _published_doctors - active:
+        QUEUE_WAITING.remove(stale)
+    _published_doctors.clear()
+    _published_doctors.update(active)
