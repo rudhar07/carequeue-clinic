@@ -1,0 +1,19 @@
+# Terraform working files and state (state can contain sensitive values)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfplan
+tfplan*
+plan.txt
+# Real variable files stay local; only the example is committed
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# NOTE: .terraform.lock.hcl IS committed on purpose (pins provider versions + hashes).

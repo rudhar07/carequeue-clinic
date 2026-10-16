@@ -1,0 +1,111 @@
+# CareQueue Terraform: offline checks (no AWS credentials on this machine, none needed for these)
+# Date: 2026-10-16T15:06:50Z  Host: macOS arm64
+
+$ terraform version
+Terraform v1.16.4
+on darwin_arm64
++ provider registry.terraform.io/hashicorp/aws v6.69.1
++ provider registry.terraform.io/hashicorp/cloudinit v2.4.1
++ provider registry.terraform.io/hashicorp/null v3.3.2
++ provider registry.terraform.io/hashicorp/time v0.14.2
++ provider registry.terraform.io/hashicorp/tls v4.4.1
+
+Your version of Terraform is out of date! The latest version
+is 1.16.6. You can update by downloading from https://developer.hashicorp.com/terraform/install
+[exit code: 0]
+
+$ terraform fmt -check -recursive -diff
+[exit code: 0]
+
+$ terraform init -backend=false -input=false
+Initializing modules...
+Downloading registry.terraform.io/terraform-aws-modules/vpc/aws 6.7.3 for vpc...
+- vpc in .terraform/modules/vpc
+Downloading registry.terraform.io/terraform-aws-modules/eks/aws 21.29.0 for eks...
+- eks in .terraform/modules/eks
+- eks.fargate_profile in .terraform/modules/eks/modules/fargate-profile
+Downloading registry.terraform.io/terraform-aws-modules/kms/aws 4.0.0 for eks.kms...
+- eks.kms in .terraform/modules/eks.kms
+- eks.self_managed_node_group in .terraform/modules/eks/modules/self-managed-node-group
+- eks.eks_managed_node_group in .terraform/modules/eks/modules/eks-managed-node-group
+- eks.self_managed_node_group.user_data in .terraform/modules/eks/modules/_user_data
+- eks.eks_managed_node_group.user_data in .terraform/modules/eks/modules/_user_data
+
+Initializing provider plugins...
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Reusing previous version of hashicorp/tls from the dependency lock file
+- Reusing previous version of hashicorp/time from the dependency lock file
+- Reusing previous version of hashicorp/null from the dependency lock file
+- Reusing previous version of hashicorp/cloudinit from the dependency lock file
+- Installing hashicorp/aws v6.69.1...
+- Installed hashicorp/aws v6.69.1 (signed by HashiCorp)
+- Installing hashicorp/tls v4.4.1...
+- Installed hashicorp/tls v4.4.1 (signed by HashiCorp)
+- Installing hashicorp/time v0.14.2...
+- Installed hashicorp/time v0.14.2 (signed by HashiCorp)
+- Installing hashicorp/null v3.3.2...
+- Installed hashicorp/null v3.3.2 (signed by HashiCorp)
+- Installing hashicorp/cloudinit v2.4.1...
+- Installed hashicorp/cloudinit v2.4.1 (signed by HashiCorp)
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+
+If you ever set or change modules or backend configuration for Terraform,
+rerun this command to reinitialize your working directory. If you forget, other
+commands will detect it and remind you to do so if necessary.
+[exit code: 0]
+
+$ terraform validate
+Success! The configuration is valid.
+
+[exit code: 0]
+
+$ terraform providers
+
+Providers required by configuration:
+.
+├── provider[registry.terraform.io/hashicorp/aws] ~> 6.69
+├── module.eks
+│   ├── provider[registry.terraform.io/hashicorp/aws] >= 6.59.0
+│   ├── provider[registry.terraform.io/hashicorp/tls] >= 4.0.0
+│   ├── provider[registry.terraform.io/hashicorp/time] >= 0.9.0
+│   ├── module.kms
+│   │   └── provider[registry.terraform.io/hashicorp/aws] >= 6.0.0
+│   ├── module.eks_managed_node_group
+│   │   ├── provider[registry.terraform.io/hashicorp/aws] >= 6.59.0
+│   │   └── module.user_data
+│   │       ├── provider[registry.terraform.io/hashicorp/null] >= 3.0.0
+│   │       └── provider[registry.terraform.io/hashicorp/cloudinit] >= 2.0.0
+│   ├── module.self_managed_node_group
+│   │   ├── provider[registry.terraform.io/hashicorp/aws] >= 6.59.0
+│   │   └── module.user_data
+│   │       ├── provider[registry.terraform.io/hashicorp/cloudinit] >= 2.0.0
+│   │       └── provider[registry.terraform.io/hashicorp/null] >= 3.0.0
+│   └── module.fargate_profile
+│       └── provider[registry.terraform.io/hashicorp/aws] >= 6.59.0
+└── module.vpc
+    └── provider[registry.terraform.io/hashicorp/aws] >= 6.28.0
+
+[exit code: 0]
+
+$ grep -E '^provider|version ' .terraform.lock.hcl
+provider "registry.terraform.io/hashicorp/aws" {
+  version     = "6.69.1"
+provider "registry.terraform.io/hashicorp/cloudinit" {
+  version     = "2.4.1"
+provider "registry.terraform.io/hashicorp/null" {
+  version     = "3.3.2"
+provider "registry.terraform.io/hashicorp/time" {
+  version     = "0.14.2"
+provider "registry.terraform.io/hashicorp/tls" {
+  version     = "4.4.1"
+[exit code: 0]
+
+$ echo "h1 hashes: $(grep -c 'h1:' .terraform.lock.hcl), zh hashes: $(grep -c 'zh:' .terraform.lock.hcl)  (lock generated with: terraform providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=darwin_amd64)"
+h1 hashes: 15, zh hashes: 68  (lock generated with: terraform providers lock -platform=darwin_arm64 -platform=linux_amd64 -platform=darwin_amd64)
+[exit code: 0]
+

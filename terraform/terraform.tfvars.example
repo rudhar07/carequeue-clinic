@@ -1,0 +1,25 @@
+# Copy to terraform.tfvars (gitignored) and adjust. No credentials here, ever:
+# the AWS provider takes them from `aws configure` / `aws login` / AWS_PROFILE.
+
+region       = "ap-south-1"
+cluster_name = "carequeue-eks"
+
+kubernetes_version = "1.36"
+
+# Leave empty to use the first 2 available AZs, or pin them:
+# availability_zones = ["ap-south-1a", "ap-south-1b"]
+
+# Cheapest setup: nodes in public subnets, no NAT gateway.
+enable_private_subnets = false
+
+node_instance_types = ["t3.medium"]
+node_capacity_type  = "ON_DEMAND" # or "SPOT" (cheaper, can be interrupted)
+node_desired_size   = 2
+node_min_size       = 1
+node_max_size       = 3
+node_disk_size_gb   = 20
+
+enable_ebs_csi_driver = true
+
+# Lock the Kubernetes API to your own IP if you like (curl -s https://checkip.amazonaws.com):
+# endpoint_public_access_cidrs = ["203.0.113.10/32"]

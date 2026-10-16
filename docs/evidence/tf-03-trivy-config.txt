@@ -1,0 +1,42 @@
+# Trivy IaC misconfiguration scan of terraform/ (Terraform scanner, module code included).
+# 5 checks are suppressed inline with a written reason (#trivy:ignore comments in
+# terraform/vpc.tf and terraform/eks.tf): AWS-0040/0041 (public EKS API endpoint),
+# AWS-0104 (node egress), AWS-0164 (public IP on launch, no NAT by design),
+# AWS-0178 (flow logs, optional via enable_flow_log).
+# Note: without --misconfig-scanners terraform, Trivy also scans example Kubernetes
+# YAML that ships inside the downloaded module cache (terraform/.terraform/, gitignored);
+# those KSV results are not part of this configuration.
+
+$ trivy --version | head -1
+Version: 0.75.0
+[exit code: 0]
+
+$ trivy config --quiet --misconfig-scanners terraform --exit-code 1 --table-mode summary,detailed terraform/
+
+Report Summary
+
+┌─────────────────────────────────────────────────────────────────────┬───────────┬───────────────────┐
+│                               Target                                │   Type    │ Misconfigurations │
+├─────────────────────────────────────────────────────────────────────┼───────────┼───────────────────┤
+│ .                                                                   │ terraform │         0         │
+├─────────────────────────────────────────────────────────────────────┼───────────┼───────────────────┤
+│ terraform-aws-modules/eks/aws/.terraform/modules/eks/main.tf        │ terraform │         0         │
+├─────────────────────────────────────────────────────────────────────┼───────────┼───────────────────┤
+│ terraform-aws-modules/eks/aws/.terraform/modules/eks/node_groups.tf │ terraform │         0         │
+├─────────────────────────────────────────────────────────────────────┼───────────┼───────────────────┤
+│ terraform-aws-modules/vpc/aws/.terraform/modules/vpc/main.tf        │ terraform │         0         │
+└─────────────────────────────────────────────────────────────────────┴───────────┴───────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+[exit code: 0]
+
+$ grep -n 'trivy:ignore' terraform/*.tf
+terraform/eks.tf:16:#trivy:ignore:AVD-AWS-0040
+terraform/eks.tf:17:#trivy:ignore:AVD-AWS-0041
+terraform/eks.tf:18:#trivy:ignore:AVD-AWS-0104
+terraform/vpc.tf:25:#trivy:ignore:AVD-AWS-0164
+terraform/vpc.tf:26:#trivy:ignore:AVD-AWS-0178
+[exit code: 0]
+
