@@ -1,0 +1,18 @@
+apiVersion: v2
+name: carequeue
+description: CareQueue - clinic appointments & patient queue (FastAPI + React/nginx + PostgreSQL)
+type: application
+# Chart version: bump on every chart change.
+version: 1.0.0
+# App version: the default image tag when backend/frontend.image.tag is empty.
+# CI always sets the tag to the commit SHA.
+appVersion: "1.0.0"
+kubeVersion: ">=1.27.0-0"
+keywords: [clinic, appointments, queue, fastapi, react, postgresql]
+icon: https://raw.githubusercontent.com/rudhar07/carequeue-clinic/main/frontend/public/favicon.svg
+home: https://github.com/rudhar07/carequeue-clinic
+sources:
+  - https://github.com/rudhar07/carequeue-clinic
+maintainers:
+  - name: Rudhar Bajaj
+    url: https://github.com/rudhar07

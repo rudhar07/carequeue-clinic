@@ -1,0 +1,90 @@
+{{- $name := include "carequeue.frontend.fullname" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+spec:
+  replicas: {{ include "carequeue.replicas" (dict "ctx" . "name" $name "cfg" .Values.frontend) }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "frontend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "carequeue.componentLabels" (dict "ctx" . "component" "frontend") | nindent 8 }}
+      {{- with .Values.frontend.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "carequeue.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "carequeue.podSecurityContext" (dict "uid" 101) | nindent 8 }}
+      containers:
+        - name: frontend
+          image: {{ include "carequeue.frontend.image" . | quote }}
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.port }}
+              protocol: TCP
+          env:
+            # nginx renders /etc/nginx/templates/default.conf.template with this
+            # upstream for /api (used when the UI is reached without the Ingress,
+            # e.g. kubectl port-forward; through the Ingress /api goes straight
+            # to the backend Service).
+            - name: BACKEND_URL
+              value: "http://{{ include "carequeue.backend.fullname" . }}:{{ .Values.backend.port }}"
+          livenessProbe:
+            httpGet: {path: {{ .Values.frontend.probes.liveness.path }}, port: http}
+            periodSeconds: {{ .Values.frontend.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.frontend.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.frontend.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet: {path: {{ .Values.frontend.probes.readiness.path }}, port: http}
+            periodSeconds: {{ .Values.frontend.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.frontend.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.frontend.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          securityContext:
+            {{- include "carequeue.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            # Read-only root filesystem: nginx writes only its pid/temp files
+            # (/tmp) and the rendered config (/etc/nginx/conf.d).
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: nginx-conf
+          emptyDir:
+            sizeLimit: 1Mi
+      {{- with .Values.frontend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.frontend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

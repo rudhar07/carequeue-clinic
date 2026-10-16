@@ -1,0 +1,34 @@
+{{- /*
+CPU-based autoscaling (autoscaling/v2). Needs metrics-server and CPU requests
+on the pods: utilisation = actual CPU / requested CPU.
+*/}}
+{{- range $component := list "backend" "frontend" }}
+{{- $cfg := index $.Values $component }}
+{{- if $cfg.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "carequeue.fullname" $ }}-{{ $component }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" $ "component" $component) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "carequeue.fullname" $ }}-{{ $component }}
+  minReplicas: {{ $cfg.autoscaling.minReplicas }}
+  maxReplicas: {{ $cfg.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $cfg.autoscaling.targetCPUUtilizationPercentage }}
+  {{- with $cfg.autoscaling.behavior }}
+  behavior:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}

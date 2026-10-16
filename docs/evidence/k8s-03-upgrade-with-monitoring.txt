@@ -1,0 +1,69 @@
+# helm upgrade after kube-prometheus-stack is installed: the ServiceMonitor + PrometheusRule now render (2026-10-16T15:14:03Z)
+$ SKIP_BUILD=1 GIT_SHA=local-kind scripts/deploy-local.sh
+--- kind load docker-image (cluster cq)
+Image: "carequeue-backend:local" with ID "sha256:bed753c06c135d6cd5f9c7728fd2f4cb984a840aa9d0f53e96ae189cb6f39fbf" not yet present on node "cq-control-plane", loading...
+Image: "carequeue-frontend:local" with ID "sha256:6b5d04eb675eac6fd42ca7aebbf77daa58e62e7b6a527f5dda5ee22285bdf27a" not yet present on node "cq-control-plane", loading...
+--- namespace
+namespace/carequeue unchanged
+--- helm upgrade --install carequeue
+Release "carequeue" has been upgraded. Happy Helming!
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:44:10 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 2
+DESCRIPTION: Upgrade complete
+NOTES:
+CareQueue 1.0.0 is deployed as release "carequeue" in namespace "carequeue".
+
+Backend image:  carequeue-backend:local
+Frontend image: carequeue-frontend:local
+Commit (GIT_SHA): local-kind
+
+1. Check the pods (expect >= 2 backend and >= 2 frontend pods Running):
+   kubectl get pods,svc,ingress,hpa -n carequeue
+
+2. Run the connection test:
+   helm test carequeue -n carequeue --logs
+
+3. Open the app through the Ingress (class "nginx"):
+   http://carequeue.local/
+   On kind (scripts/kind-up.sh maps the ingress to localhost:8088):
+     curl -H 'Host: carequeue.local' http://localhost:8088/api/info
+     or add "127.0.0.1 carequeue.local" to /etc/hosts and open http://carequeue.local:8088/
+   Without a Host header (path-only rule): http://localhost:8088/ on kind
+deployment "carequeue-backend" successfully rolled out
+deployment "carequeue-frontend" successfully rolled out
+NAME                                      READY   STATUS    RESTARTS   AGE     IP            NODE               NOMINATED NODE   READINESS GATES
+pod/carequeue-backend-ffc95c678-dftrl     1/1     Running   0          9m41s   10.244.0.9    cq-control-plane   <none>           <none>
+pod/carequeue-backend-ffc95c678-hszdb     1/1     Running   0          9m41s   10.244.0.10   cq-control-plane   <none>           <none>
+pod/carequeue-frontend-6b9c489c59-btp6r   1/1     Running   0          9m41s   10.244.0.11   cq-control-plane   <none>           <none>
+pod/carequeue-frontend-6b9c489c59-pmb8b   1/1     Running   0          9m41s   10.244.0.12   cq-control-plane   <none>           <none>
+pod/carequeue-postgresql-0                1/1     Running   0          9m41s   10.244.0.15   cq-control-plane   <none>           <none>
+
+NAME                              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE     SELECTOR
+service/carequeue-backend         ClusterIP   10.96.94.172    <none>        8000/TCP   9m41s   app.kubernetes.io/component=backend,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+service/carequeue-frontend        ClusterIP   10.96.129.195   <none>        80/TCP     9m41s   app.kubernetes.io/component=frontend,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+service/carequeue-postgresql      ClusterIP   10.96.34.199    <none>        5432/TCP   9m41s   app.kubernetes.io/component=postgresql,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+service/carequeue-postgresql-hl   ClusterIP   None            <none>        5432/TCP   9m41s   app.kubernetes.io/component=postgresql,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+
+NAME                                  CLASS   HOSTS             ADDRESS     PORTS   AGE
+ingress.networking.k8s.io/carequeue   nginx   carequeue.local   localhost   80      9m41s
+
+NAME                                                     REFERENCE                       TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/carequeue-backend    Deployment/carequeue-backend    cpu: 8%/60%   2         6         2          9m41s
+horizontalpodautoscaler.autoscaling/carequeue-frontend   Deployment/carequeue-frontend   cpu: 5%/70%   2         4         2          9m41s
+Open http://localhost:8088/   API: curl http://localhost:8088/api/info
+
+$ kubectl get servicemonitor,prometheusrule -n carequeue
+NAME                                                     AGE
+servicemonitor.monitoring.coreos.com/carequeue-backend   6s
+
+NAME                                                    AGE
+prometheusrule.monitoring.coreos.com/carequeue-alerts   6s
+
+$ helm history carequeue -n carequeue
+REVISION	UPDATED                 	STATUS    	CHART          	APP VERSION	DESCRIPTION     
+1       	Fri Oct 16 20:34:44 2026	superseded	carequeue-1.0.0	1.0.0      	Install complete
+2       	Fri Oct 16 20:44:10 2026	deployed  	carequeue-1.0.0	1.0.0      	Upgrade complete
+

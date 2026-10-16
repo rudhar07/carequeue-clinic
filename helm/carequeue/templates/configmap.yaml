@@ -1,0 +1,18 @@
+# Non-secret backend settings (envFrom in the backend, the hook Jobs and wait-for-db).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "carequeue.configName" . }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+data:
+  {{- range $key, $value := .Values.backend.env }}
+  {{- if not (has $key (list "GIT_SHA" "APP_VERSION")) }}
+  {{ $key }}: {{ $value | toString | quote }}
+  {{- end }}
+  {{- end }}
+  GIT_SHA: {{ include "carequeue.gitSha" . | quote }}
+  APP_VERSION: {{ .Values.backend.env.APP_VERSION | default .Chart.AppVersion | toString | quote }}
+  DB_HOST: {{ include "carequeue.dbHost" . | quote }}
+  DB_PORT: {{ .Values.database.port | toString | quote }}
+  DB_NAME: {{ .Values.database.name | quote }}

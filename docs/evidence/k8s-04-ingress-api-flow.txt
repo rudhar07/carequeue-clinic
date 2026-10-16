@@ -1,0 +1,131 @@
+# CareQueue API through ingress-nginx on kind (host port 8088 -> node port 80) (2026-10-16T15:06:55Z)
+# Path-only rule (plain localhost) and the carequeue.local host rule.
+
+$ curl -sS -i http://localhost:8088/api/info
+HTTP/1.1 200 OK
+Date: Fri, 16 Oct 2026 15:06:55 GMT
+Content-Type: application/json
+Content-Length: 59
+Connection: keep-alive
+vary: Origin
+
+{"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+$ curl -sS -H 'Host: carequeue.local' http://localhost:8088/api/info
+{"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+$ curl -sS -H 'Host: carequeue.local' http://localhost:8088/ | grep -o '<title>.*</title>'
+<title>CareQueue - Clinic Appointments &amp; Patient Queue</title>
+
+$ curl -sS -o /dev/null -w 'GET / via carequeue.local -> HTTP %{http_code}\n' -H 'Host: carequeue.local' http://localhost:8088/
+GET / via carequeue.local -> HTTP 200
+
+$ curl -sS -H 'Host: carequeue.local' 'http://localhost:8088/api/doctors?active_only=true'
+[{"id":3,"full_name":"Dr. Kavya Reddy","specialty":"Dermatology","room":"201","slot_minutes":15,"start_time":"11:00:00","end_time":"18:00:00","is_active":true},{"id":1,"full_name":"Dr. Ananya Iyer","specialty":"General Medicine","room":"101","slot_minutes":15,"start_time":"09:00:00","end_time":"17:00:00","is_active":true},{"id":4,"full_name":"Dr. Arjun Singh","specialty":"Orthopedics","room":"203","slot_minutes":30,"start_time":"09:00:00","end_time":"14:00:00","is_active":true},{"id":2,"full_name":"Dr. Rohan Mehta","specialty":"Pediatrics","room":"104","slot_minutes":20,"start_time":"10:00:00","end_time":"16:00:00","is_active":true}]
+# /health, /ready and /metrics are not exposed by the Ingress: only /api goes to the backend,
+# so /health falls under '/' (frontend) and nginx answers with the SPA's index.html, not the backend JSON.
+$ curl -sS http://localhost:8088/health | head -c 120; echo
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-w
+
+# Full CRUD + booking + queue walkthrough (scripts/api-flow.sh) through the Ingress:
+$ BASE_URL=http://localhost:8088/api scripts/api-flow.sh
+== CareQueue API flow against http://localhost:8088/api
+--> GET /api/info 
+<-- HTTP 200 {"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+
+--> GET /api/stats/today 
+<-- HTTP 200 {"date":"2026-10-16","total":30,"by_status":{"booked":3,"checked_in":11,"in_consultation":4,"completed":8,"cancelled":0,"no_show":4},"active_doctors":4,"patients":12}
+
+== 1. Register an evening-clinic doctor and two patients
+--> POST /api/doctors {"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2","slot_minutes":15,"start_time":"08:00","end_time":"23:45"}
+<-- HTTP 201 {"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2","slot_minutes":15,"start_time":"08:00:00","end_time":"23:45:00","is_active":true}
+
+--> POST /api/patients {"full_name":"Farhan Qureshi","phone":"+91 91234 63216","date_of_birth":"1990-08-14","gender":"male"}
+<-- HTTP 201 {"id":15,"full_name":"Farhan Qureshi","phone":"9123463216","date_of_birth":"1990-08-14","gender":"male","created_at":"2026-10-16T15:06:56.291257Z"}
+
+--> POST /api/patients {"full_name":"Lakshmi Pillai","phone":"8123463216","date_of_birth":"1968-02-03","gender":"female"}
+<-- HTTP 201 {"id":16,"full_name":"Lakshmi Pillai","phone":"8123463216","date_of_birth":"1968-02-03","gender":"female","created_at":"2026-10-16T15:06:56.351620Z"}
+
+--> POST /api/patients {"full_name":"Duplicate Phone","phone":"8123463216","date_of_birth":"1990-01-01","gender":"other"}
+<-- HTTP 409 {"detail":"A patient with this phone number already exists"}
+
+--> POST /api/patients {"full_name":"Bad Phone","phone":"12345","date_of_birth":"1990-01-01","gender":"other"}
+<-- HTTP 422 {"detail":[{"type":"value_error","loc":["body","phone"],"msg":"Value error, phone must be a 10-digit Indian mobile number starting with 6-9","input":"12345","ctx":{"error":{}}}]}
+
+== 2. Slot grid for today (2026-10-16): book the next two free slots
+--> GET /api/doctors/6/slots?date=2026-10-16 
+<-- HTTP 200 {"doctor_id":6,"date":"2026-10-16","slot_minutes":15,"free_count":12,"slots":[{"time":"08:00:00","status":"past","token_number":null},{"time":"08:15:00","status":"past","token_number":null},{"time":"08:30:00","status":"past","token_number":null},{"time":"08:45:00","status":"past","token_number":null},{"time":"09:00:00","status":"past","token_number":null},{"time":"09:15:00","status":"past","token_number":null},{"time":"09:30:00","status":"past","token_number":null},{"time":"09:45:00","status":"past","token_number":null},{"time":"10:00:00","status":"past","token_number":null},{"time":"10:15:00","status":"past","token_number":null},{"time":"10:30:00","status":"past","token_number":null},{"time":"10:45:00","status":"past","token_number":null},{"time":"11:00:00","status":"past","token_number":null},{"time":"11:15:00","status":"past","token_number":null},{"time":"11:30:00","status":"past","token_number":null},{"time":"11:45:00","status":"past","token_number":null},{"time":"12:00:00","status":"past","token_number":null},{"time":"12:15:00","status":"past","token_number":null},{"time":"12:30:00","status":"past","token_number":null},{"time":"12:45:00","status":"past","token_number":null},{"time":"13:00:00","status":"past","token_number":null},{"time":"13:15:00","status":"past","token_number":null},{"time":"13:30:00","status":"past","token_number":null},{"time":"13:45:00","status":"past","token_number":null},{"time":"14:00:00","status":"past","token_number":null},{"time":"14:15:00","status":"past","token_number":null},{"time":"14:30:00","status":"past","token_number":null},{"time":"14:45:00","status":"past","token_number":null},{"time":"15:00:00","status":"past","token_number":null},{"time":"15:15:00","status":"past","token_number":null},{"time":"15:30:00","status":"past","token_number":null},{"time":"15:45:00","status":"past","token_number":null},{"time":"16:00:00","status":"past","token_number":null},{"time":"16:15:00","status":"past","token_number":null},{"time":"16:30:00","status":"past","token_number":null},{"time":"16:45:00","status":"past","token_number":null},{"time":"17:00:00","status":"past","token_number":null},{"time":"17:15:00","status":"past","token_number":null},{"time":"17:30:00","status":"past","token_number":null},{"time":"17:45:00","status":"past","token_number":null},{"time":"18:00:00","status":"past","token_number":null},{"time":"18:15:00","status":"past","token_number":null},{"time":"18:30:00","status":"past","token_number":null},{"time":"18:45:00","status":"past","token_number":null},{"time":"19:00:00","status":"past","token_number":null},{"time":"19:15:00","status":"past","token_number":null},{"time":"19:30:00","status":"past","token_number":null},{"time":"19:45:00","status":"past","token_number":null},{"time":"20:00:00","status":"past","token_number":null},{"time":"20:15:00","status":"past","token_number":null},{"time":"20:30:00","status":"past","token_number":null},{"time":"20:45:00","status":"free","token_number":null},{"time":"21:00:00","status":"free","token_number":null},{"time":"21:15:00","status":"free","token_number":null},{"time":"21:30:00","status":"free","token_number":null},{"time":"21:45:00","status":"free","token_number":null},{"time":"22:00:00","status":"free","token_number":null},{"time":"22:15:00","status":"free","token_number":null},{"time":"22:30:00","status":"free","token_number":null},{"time":"22:45:00","status":"free","token_number":null},{"time":"23:00:00","status":"free","token_number":null},{"time":"23:15:00","status":"free","token_number":null},{"time":"23:30:00","status":"free","token_number":null}]}
+
+--> POST /api/appointments {"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night"}
+<-- HTTP 201 {"id":33,"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night","token_number":1,"status":"booked","created_at":"2026-10-16T15:06:56.624233Z","updated_at":"2026-10-16T15:06:56.624238Z","patient":{"id":15,"full_name":"Farhan Qureshi","phone":"9123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+--> POST /api/appointments {"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review"}
+<-- HTTP 201 {"id":34,"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review","token_number":2,"status":"booked","created_at":"2026-10-16T15:06:56.683970Z","updated_at":"2026-10-16T15:06:56.683975Z","patient":{"id":16,"full_name":"Lakshmi Pillai","phone":"8123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+== 3. Business rules: double booking, off-grid slot, past date
+--> POST /api/appointments {"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00"}
+<-- HTTP 409 {"detail":"This slot is already booked"}
+
+--> POST /api/appointments {"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"23:50"}
+<-- HTTP 422 {"detail":"23:50 is not a valid slot for this doctor (08:00-23:45, every 15 min)"}
+
+--> POST /api/appointments {"patient_id":16,"doctor_id":6,"appointment_date":"2020-01-01","slot_time":"10:00"}
+<-- HTTP 422 {"detail":"Cannot book a slot in the past"}
+
+== 4. Visit workflow: check-in, call in, live queue, complete
+--> PATCH /api/appointments/33/status {"status":"checked_in"}
+<-- HTTP 200 {"id":33,"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night","token_number":1,"status":"checked_in","created_at":"2026-10-16T15:06:56.624233Z","updated_at":"2026-10-16T15:06:56.859715Z","patient":{"id":15,"full_name":"Farhan Qureshi","phone":"9123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+--> PATCH /api/appointments/34/status {"status":"checked_in"}
+<-- HTTP 200 {"id":34,"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review","token_number":2,"status":"checked_in","created_at":"2026-10-16T15:06:56.683970Z","updated_at":"2026-10-16T15:06:56.890657Z","patient":{"id":16,"full_name":"Lakshmi Pillai","phone":"8123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+--> PATCH /api/appointments/33/status {"status":"in_consultation"}
+<-- HTTP 200 {"id":33,"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night","token_number":1,"status":"in_consultation","created_at":"2026-10-16T15:06:56.624233Z","updated_at":"2026-10-16T15:06:56.922436Z","patient":{"id":15,"full_name":"Farhan Qureshi","phone":"9123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+--> PATCH /api/appointments/34/status {"status":"in_consultation"}
+<-- HTTP 409 {"detail":"The doctor is still with token #1"}
+
+--> GET /api/queue?doctor_id=6 
+<-- HTTP 200 {"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"},"date":"2026-10-16","now_serving":{"id":33,"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night","token_number":1,"status":"in_consultation","created_at":"2026-10-16T15:06:56.624233Z","updated_at":"2026-10-16T15:06:56.922436Z","patient":{"id":15,"full_name":"Farhan Qureshi","phone":"9123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}},"next_up":{"id":34,"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review","token_number":2,"status":"checked_in","created_at":"2026-10-16T15:06:56.683970Z","updated_at":"2026-10-16T15:06:56.890657Z","patient":{"id":16,"full_name":"Lakshmi Pillai","phone":"8123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}},"waiting_count":1,"waiting":[{"id":34,"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review","token_number":2,"status":"checked_in","created_at":"2026-10-16T15:06:56.683970Z","updated_at":"2026-10-16T15:06:56.890657Z","patient":{"id":16,"full_name":"Lakshmi Pillai","phone":"8123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}],"not_arrived":[],"done":[]}
+
+--> PATCH /api/appointments/33/status {"status":"completed"}
+<-- HTTP 200 {"id":33,"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night","token_number":1,"status":"completed","created_at":"2026-10-16T15:06:56.624233Z","updated_at":"2026-10-16T15:06:57.029474Z","patient":{"id":15,"full_name":"Farhan Qureshi","phone":"9123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+--> PATCH /api/appointments/33/status {"status":"checked_in"}
+<-- HTTP 409 {"detail":"Cannot change status from completed to checked_in"}
+
+--> GET /api/appointments?date=2026-10-16&doctor_id=6 
+<-- HTTP 200 [{"id":33,"patient_id":15,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"20:45:00","reason":"High fever since last night","token_number":1,"status":"completed","created_at":"2026-10-16T15:06:56.624233Z","updated_at":"2026-10-16T15:06:57.029474Z","patient":{"id":15,"full_name":"Farhan Qureshi","phone":"9123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}},{"id":34,"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review","token_number":2,"status":"checked_in","created_at":"2026-10-16T15:06:56.683970Z","updated_at":"2026-10-16T15:06:56.890657Z","patient":{"id":16,"full_name":"Lakshmi Pillai","phone":"8123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}]
+
+--> GET /api/stats/today 
+<-- HTTP 200 {"date":"2026-10-16","total":32,"by_status":{"booked":3,"checked_in":12,"in_consultation":4,"completed":9,"cancelled":0,"no_show":4},"active_doctors":5,"patients":14}
+
+== 5. Updates and clean-up
+--> PUT /api/patients/16 {"full_name":"Lakshmi R. Pillai","phone":"8123463216","date_of_birth":"1968-02-03","gender":"female"}
+<-- HTTP 200 {"id":16,"full_name":"Lakshmi R. Pillai","phone":"8123463216","date_of_birth":"1968-02-03","gender":"female","created_at":"2026-10-16T15:06:56.351620Z"}
+
+--> DELETE /api/appointments/33 
+<-- HTTP 409 {"detail":"Cannot delete an appointment that is completed"}
+
+--> PATCH /api/appointments/34/status {"status":"no_show"}
+<-- HTTP 200 {"id":34,"patient_id":16,"doctor_id":6,"appointment_date":"2026-10-16","slot_time":"21:00:00","reason":"Diabetes review","token_number":2,"status":"no_show","created_at":"2026-10-16T15:06:56.683970Z","updated_at":"2026-10-16T15:06:57.302406Z","patient":{"id":16,"full_name":"Lakshmi R. Pillai","phone":"8123463216"},"doctor":{"id":6,"full_name":"Dr. Nikhil Bose","specialty":"General Medicine","room":"E-2"}}
+
+--> DELETE /api/appointments/34 
+<-- HTTP 204 
+
+--> DELETE /api/patients/15 
+<-- HTTP 204 
+
+--> DELETE /api/patients/16 
+<-- HTTP 204 
+
+--> DELETE /api/doctors/6 
+<-- HTTP 200 {"id":6,"action":"deleted"}
+
+--> GET /api/doctors/6 
+<-- HTTP 404 {"detail":"Doctor not found"}
+
+== API flow finished: every response had the expected status code
+

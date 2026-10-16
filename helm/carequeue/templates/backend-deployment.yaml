@@ -1,0 +1,103 @@
+{{- $name := include "carequeue.backend.fullname" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  replicas: {{ include "carequeue.replicas" (dict "ctx" . "name" $name "cfg" .Values.backend) }}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0    # never drop below the current capacity during a rollout
+  selector:
+    matchLabels:
+      {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "carequeue.componentLabels" (dict "ctx" . "component" "backend") | nindent 8 }}
+      annotations:
+        # Roll the pods when the settings or the credentials change.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.backend.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "carequeue.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "carequeue.podSecurityContext" (dict "uid" 10001) | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      initContainers:
+        {{- include "carequeue.waitForDb" . | nindent 8 }}
+      containers:
+        - name: backend
+          image: {{ include "carequeue.backend.image" . | quote }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "carequeue.configName" . }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "carequeue.dbSecretName" . }}
+                  key: DATABASE_URL
+            # The schema and the demo data are handled by the hook Jobs, never by the pods.
+            - name: RUN_MIGRATIONS
+              value: "false"
+            - name: RUN_SEED
+              value: "false"
+          startupProbe:
+            httpGet: {path: {{ .Values.backend.probes.startup.path }}, port: http}
+            periodSeconds: {{ .Values.backend.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.startup.failureThreshold }}
+          livenessProbe:
+            httpGet: {path: {{ .Values.backend.probes.liveness.path }}, port: http}
+            periodSeconds: {{ .Values.backend.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet: {path: {{ .Values.backend.probes.readiness.path }}, port: http}
+            periodSeconds: {{ .Values.backend.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.backend.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.backend.probes.readiness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            {{- include "carequeue.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            # Read-only root filesystem: /tmp is the only writable path (Python
+            # bytecode is not written, PYTHONDONTWRITEBYTECODE=1 in the image).
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

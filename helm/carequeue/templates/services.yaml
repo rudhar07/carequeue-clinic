@@ -1,0 +1,33 @@
+# ClusterIP Services: stable in-cluster names for the backend and the frontend.
+# Only the Ingress is reachable from outside the cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "carequeue.backend.fullname" . }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "backend") | nindent 4 }}
+  ports:
+    - name: http          # the ServiceMonitor scrapes this port by name
+      port: {{ .Values.backend.port }}
+      targetPort: http
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "carequeue.frontend.fullname" . }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "frontend") | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

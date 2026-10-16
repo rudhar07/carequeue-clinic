@@ -1,0 +1,60 @@
+{{- /*
+"helm test <release>" runs this pod. It checks the whole in-cluster path:
+DNS + the backend Service + PostgreSQL (/ready returns 503 when the DB is down),
+then the frontend Service + nginx's /api proxy + the backend (/api/info).
+hook-delete-policy before-hook-creation only: the finished pod stays, so
+"helm test --logs" can print its output; the next run replaces it.
+*/}}
+{{- $backend := printf "http://%s:%v" (include "carequeue.backend.fullname" .) .Values.backend.port }}
+{{- $frontend := printf "http://%s" (include "carequeue.frontend.fullname" .) }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "carequeue.fullname" . }}-test-connection
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "test") | nindent 4 }}
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: curl
+      image: {{ .Values.tests.image | quote }}
+      command: ["sh", "-c"]
+      args:
+        - |
+          set -eu
+          echo "== backend readiness ({{ $backend }}/ready)"
+          curl -fsS --retry 5 --retry-delay 2 --retry-all-errors "{{ $backend }}/ready"; echo
+          echo "== backend liveness ({{ $backend }}/health)"
+          curl -fsS "{{ $backend }}/health"; echo
+          echo "== frontend -> nginx /api proxy -> backend ({{ $frontend }}/api/info)"
+          curl -fsS --retry 5 --retry-delay 2 --retry-all-errors "{{ $frontend }}/api/info" | tee /tmp/info.json; echo
+          grep -q '"commit":"{{ include "carequeue.gitSha" . }}"' /tmp/info.json
+          echo "== frontend serves the SPA"
+          curl -fsS "{{ $frontend }}/" | grep -qi '<title>CareQueue'
+          echo "== API data through the proxy ({{ $frontend }}/api/doctors)"
+          curl -fsS "{{ $frontend }}/api/doctors" | head -c 300; echo
+          echo "helm test: OK"
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 32Mi}
+  volumes:
+    - name: tmp
+      emptyDir: {}

@@ -1,0 +1,108 @@
+# Production-style values (EKS from terraform/), for reference and "helm lint".
+#   helm upgrade --install carequeue helm/carequeue -n carequeue \
+#     -f helm/carequeue/values-prod.yaml \
+#     --set-string backend.image.tag=<sha> --set-string frontend.image.tag=<sha>
+# Differences from dev: managed database (RDS) with credentials from a Secret
+# that is created outside Git, no demo data, more replicas spread over nodes and
+# zones, TLS on the Ingress, a slower scale-down.
+imagePullSecrets:
+  - name: ghcr
+
+backend:
+  image:
+    repository: ghcr.io/rudhar07/carequeue-backend
+    tag: ""                     # set by the pipeline (commit SHA)
+    pullPolicy: IfNotPresent
+  replicaCount: 3
+  env:
+    LOG_LEVEL: WARNING
+    CORS_ORIGINS: "https://carequeue.example.com"
+  resources:
+    requests: {cpu: 250m, memory: 256Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 65
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+          - {type: Percent, value: 100, periodSeconds: 60}
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - {type: Pods, value: 1, periodSeconds: 60}
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: topology.kubernetes.io/zone
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: carequeue
+                app.kubernetes.io/component: backend
+
+frontend:
+  image:
+    repository: ghcr.io/rudhar07/carequeue-frontend
+    tag: ""
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            topologyKey: topology.kubernetes.io/zone
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: carequeue
+                app.kubernetes.io/component: frontend
+
+# Managed PostgreSQL (Amazon RDS) instead of the in-cluster StatefulSet.
+postgresql:
+  enabled: false
+database:
+  host: carequeue.xxxxxxxxxxxx.ap-south-1.rds.amazonaws.com   # placeholder
+  port: 5432
+  name: carequeue
+  # Created outside Git (External Secrets Operator / AWS Secrets Manager),
+  # with the key DATABASE_URL.
+  existingSecret: carequeue-db
+
+migrations:
+  enabled: true
+seed:
+  enabled: false
+
+ingress:
+  enabled: true
+  className: nginx
+  host: carequeue.example.com
+  pathOnlyRule: false
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  tls:
+    - secretName: carequeue-tls
+      hosts: [carequeue.example.com]
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  prometheusRule:
+    enabled: true

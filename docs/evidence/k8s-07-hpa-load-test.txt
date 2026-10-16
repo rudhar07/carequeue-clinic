@@ -1,0 +1,136 @@
+# HPA scale-up and scale-down under load (2026-10-16T15:15:49Z)
+# values-dev.yaml: target 60% CPU of the 100m request, min 2 / max 6, scaleDown.stabilizationWindowSeconds=60 (default 300).
+$ kubectl get hpa -n carequeue
+NAME                 REFERENCE                       TARGETS        MINPODS   MAXPODS   REPLICAS   AGE
+carequeue-backend    Deployment/carequeue-backend    cpu: 13%/60%   2         6         2          11m
+carequeue-frontend   Deployment/carequeue-frontend   cpu: 15%/70%   2         4         2          11m
+
+$ kubectl describe hpa carequeue-backend -n carequeue | sed -n '/Metrics:/,/Conditions:/p'
+Metrics:                                               ( current / target )
+  resource cpu on pods  (as a percentage of request):  13% (13m) / 60%
+Min replicas:                                          2
+Max replicas:                                          6
+Behavior:
+  Scale Up:
+    Stabilization Window: 0 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Pods  Value: 2  Period: 30 seconds
+  Scale Down:
+    Stabilization Window: 60 seconds
+    Select Policy: Max
+    Policies:
+      - Type: Pods  Value: 2  Period: 30 seconds
+Deployment pods:    2 current / 2 desired
+Conditions:
+
+# Load: 24 parallel curl loops for 180 s through the Ingress (Host carequeue.local), started in the background:
+$ BASE_URL=http://localhost:8088/api HOST_HEADER=carequeue.local DURATION=180 CONCURRENCY=24 scripts/load-test.sh &
+# Watching (one snapshot every 15 s; columns: time, then kubectl get hpa carequeue-backend + kubectl top pods):
+[20:45:50] carequeue-backend   Deployment/carequeue-backend   cpu: 13%/60%   2     6     2     11m
+[20:45:50]   top: carequeue-backend-ffc95c678-dftrl   11m   69Mi   
+[20:45:50]   top: carequeue-backend-ffc95c678-hszdb   15m   68Mi   
+[20:46:05] carequeue-backend   Deployment/carequeue-backend   cpu: 13%/60%   2     6     2     11m
+[20:46:20] carequeue-backend   Deployment/carequeue-backend   cpu: 53%/60%   2     6     2     11m
+[20:46:35] carequeue-backend   Deployment/carequeue-backend   cpu: 420%/60%   2     6     2     11m
+[20:46:50] carequeue-backend   Deployment/carequeue-backend   cpu: 474%/60%   2     6     4     12m
+[20:46:50]   top: carequeue-backend-ffc95c678-dftrl   490m   76Mi   
+[20:46:50]   top: carequeue-backend-ffc95c678-dmrqc   252m   71Mi   
+[20:46:50]   top: carequeue-backend-ffc95c678-hszdb   433m   74Mi   
+[20:46:50]   top: carequeue-backend-ffc95c678-zp2nm   319m   71Mi   
+[20:47:05] carequeue-backend   Deployment/carequeue-backend   cpu: 461%/60%   2     6     4     12m
+[20:47:20] carequeue-backend   Deployment/carequeue-backend   cpu: 137%/60%   2     6     6     12m
+[20:47:35] carequeue-backend   Deployment/carequeue-backend   cpu: 221%/60%   2     6     6     12m
+[20:47:50] carequeue-backend   Deployment/carequeue-backend   cpu: 229%/60%   2     6     6     13m
+[20:47:50]   top: carequeue-backend-ffc95c678-5rhcs   226m   71Mi   
+[20:47:50]   top: carequeue-backend-ffc95c678-dftrl   235m   75Mi   
+[20:47:50]   top: carequeue-backend-ffc95c678-dmrqc   245m   70Mi   
+[20:47:50]   top: carequeue-backend-ffc95c678-hszdb   218m   73Mi   
+[20:47:50]   top: carequeue-backend-ffc95c678-nj72x   272m   70Mi   
+[20:47:50]   top: carequeue-backend-ffc95c678-zp2nm   242m   72Mi   
+[20:48:06] carequeue-backend   Deployment/carequeue-backend   cpu: 239%/60%   2     6     6     13m
+[20:48:21] carequeue-backend   Deployment/carequeue-backend   cpu: 168%/60%   2     6     6     13m
+[20:48:36] carequeue-backend   Deployment/carequeue-backend   cpu: 126%/60%   2     6     6     13m
+[20:48:51] carequeue-backend   Deployment/carequeue-backend   cpu: 171%/60%   2     6     6     14m
+[20:48:51]   top: carequeue-backend-ffc95c678-5rhcs   236m   72Mi   
+[20:48:51]   top: carequeue-backend-ffc95c678-dftrl   197m   75Mi   
+[20:48:51]   top: carequeue-backend-ffc95c678-dmrqc   213m   70Mi   
+[20:48:51]   top: carequeue-backend-ffc95c678-hszdb   204m   74Mi   
+[20:48:51]   top: carequeue-backend-ffc95c678-nj72x   198m   70Mi   
+[20:48:51]   top: carequeue-backend-ffc95c678-zp2nm   221m   70Mi   
+[20:49:06] carequeue-backend   Deployment/carequeue-backend   cpu: 211%/60%   2     6     6     14m
+[20:49:21] carequeue-backend   Deployment/carequeue-backend   cpu: 98%/60%   2     6     6     14m
+[20:49:36] carequeue-backend   Deployment/carequeue-backend   cpu: 45%/60%   2     6     6     14m
+[20:49:51] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     6     15m
+[20:49:51]   top: carequeue-backend-ffc95c678-5rhcs   11m   69Mi   
+[20:49:51]   top: carequeue-backend-ffc95c678-dftrl   8m    75Mi   
+[20:49:51]   top: carequeue-backend-ffc95c678-dmrqc   8m    70Mi   
+[20:49:51]   top: carequeue-backend-ffc95c678-hszdb   11m   73Mi   
+[20:49:51]   top: carequeue-backend-ffc95c678-nj72x   12m   70Mi   
+[20:49:51]   top: carequeue-backend-ffc95c678-zp2nm   8m    70Mi   
+[20:50:06] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     6     15m
+[20:50:21] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     6     15m
+[20:50:36] carequeue-backend   Deployment/carequeue-backend   cpu: 10%/60%   2     6     5     15m
+[20:50:51] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     4     16m
+[20:50:51]   top: carequeue-backend-ffc95c678-dftrl   10m   75Mi   
+[20:50:51]   top: carequeue-backend-ffc95c678-hszdb   8m    73Mi   
+[20:50:51]   top: carequeue-backend-ffc95c678-nj72x   10m   70Mi   
+[20:51:07] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     3     16m
+[20:51:22] carequeue-backend   Deployment/carequeue-backend   cpu: 8%/60%   2     6     2     16m
+[20:51:22] back to minReplicas
+
+# load-test.sh output:
+Load test: 24 workers x 180s against http://localhost:8088/api (Host: carequeue.local)
+worker 13: 2286 requests
+worker 6: 2313 requests
+worker 10: 2295 requests
+worker 2: 2232 requests
+worker 18: 2232 requests
+worker 3: 2331 requests
+worker 17: 2295 requests
+worker 20: 2304 requests
+worker 21: 2304 requests
+worker 19: 2277 requests
+worker 4: 2277 requests
+worker 9: 2295 requests
+worker 23: 2340 requests
+worker 1: 2295 requests
+worker 8: 2277 requests
+worker 5: 2286 requests
+worker 11: 2259 requests
+worker 15: 2277 requests
+worker 16: 2322 requests
+worker 12: 2232 requests
+worker 14: 2277 requests
+worker 22: 2331 requests
+worker 24: 2358 requests
+worker 7: 2250 requests
+done
+
+$ kubectl describe hpa carequeue-backend -n carequeue | sed -n '/Conditions:/,$p'
+Conditions:
+  Type            Status  Reason            Message
+  ----            ------  ------            -------
+  AbleToScale     True    ReadyForNewScale  recommended size matches current size
+  ScalingActive   True    ValidMetricFound  the HPA was able to successfully calculate a replica count from cpu resource utilization (percentage of request)
+  ScalingLimited  True    TooFewReplicas    the desired replica count is less than the minimum replica count
+  ScaledToZero    False   NotScaledToZero   the HPA controller did not scale the workload to zero
+Events:
+  Type     Reason                        Age                From                       Message
+  ----     ------                        ----               ----                       -------
+  Warning  FailedGetResourceMetric       16m (x3 over 16m)  horizontal-pod-autoscaler  failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedComputeMetricsReplicas  16m (x3 over 16m)  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedGetResourceMetric       15m (x3 over 15m)  horizontal-pod-autoscaler  failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+  Warning  FailedComputeMetricsReplicas  15m (x3 over 15m)  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+  Normal   SuccessfulRescale             4m48s              horizontal-pod-autoscaler  New size: 4; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             4m18s              horizontal-pod-autoscaler  New size: 6; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             62s                horizontal-pod-autoscaler  New size: 5; reason: All metrics below target
+  Normal   SuccessfulRescale             47s                horizontal-pod-autoscaler  New size: 4; reason: All metrics below target
+  Normal   SuccessfulRescale             32s                horizontal-pod-autoscaler  New size: 3; reason: All metrics below target
+  Normal   SuccessfulRescale             17s                horizontal-pod-autoscaler  New size: 2; reason: All metrics below target
+
+$ kubectl get pods -n carequeue -l app.kubernetes.io/component=backend
+NAME                                READY   STATUS    RESTARTS   AGE
+carequeue-backend-ffc95c678-dftrl   1/1     Running   0          16m
+carequeue-backend-ffc95c678-hszdb   1/1     Running   0          16m
+

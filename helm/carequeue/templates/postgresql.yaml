@@ -1,0 +1,126 @@
+{{- if .Values.postgresql.enabled }}
+{{- /*
+In-cluster PostgreSQL for dev/demo/CI: a single-replica StatefulSet with its
+own PVC (volumeClaimTemplates), a headless Service (stable pod DNS for the
+StatefulSet) and a ClusterIP Service the backend connects to.
+Production: postgresql.enabled=false + Amazon RDS (database.host).
+*/}}
+{{- $name := include "carequeue.postgresql.fullname" . }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-hl
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "postgresql") | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "postgresql") | nindent 4 }}
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "postgresql") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "postgresql") | nindent 4 }}
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: postgresql
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "postgresql") | nindent 4 }}
+spec:
+  serviceName: {{ $name }}-hl
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "postgresql") | nindent 6 }}
+  # Keep the data when the release is uninstalled (delete the PVC by hand).
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  template:
+    metadata:
+      labels:
+        {{- include "carequeue.componentLabels" (dict "ctx" . "component" "postgresql") | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "carequeue.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      # UID/GID 70 = "postgres" in the alpine image.
+      securityContext:
+        {{- include "carequeue.podSecurityContext" (dict "uid" 70) | nindent 8 }}
+      containers:
+        - name: postgresql
+          image: {{ include "carequeue.postgresql.image" . | quote }}
+          imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+          ports:
+            - name: postgresql
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom: {secretKeyRef: {name: {{ include "carequeue.dbSecretName" . }}, key: POSTGRES_USER}}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: {{ include "carequeue.dbSecretName" . }}, key: POSTGRES_PASSWORD}}
+            - name: POSTGRES_DB
+              value: {{ .Values.database.name | quote }}
+            # A sub-directory: the volume root may contain lost+found.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -h 127.0.0.1 -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.postgresql.resources | nindent 12 }}
+          securityContext:
+            {{- include "carequeue.containerSecurityContext" . | nindent 12 }}
+          # Read-only root filesystem: data volume, socket directory and /tmp are writable.
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "carequeue.selectorLabels" (dict "ctx" . "component" "postgresql") | nindent 10 }}
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.postgresql.persistence.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.postgresql.persistence.size }}
+{{- end }}

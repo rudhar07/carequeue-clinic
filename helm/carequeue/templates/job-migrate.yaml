@@ -1,0 +1,75 @@
+{{- if .Values.migrations.enabled }}
+{{- /*
+Alembic migrations run ONCE per release revision, in this Job, not in the
+backend pods. With 2+ backend replicas an initContainer would run
+"alembic upgrade head" in every pod at the same time; two pods racing on the
+first CREATE TABLE can fail or deadlock. A single Job is the one writer.
+
+Hook timing:
+* post-install: on the very first install the in-chart PostgreSQL does not
+  exist yet during pre-install hooks (a pre-install Job would wait forever),
+  so the first migration runs right after the release objects are created.
+  The backend pods only check that the database answers (/ready), so with
+  "helm --wait" they become Ready, then this Job creates the schema. The API
+  returns 500 for the few seconds in between, on the first install only.
+* pre-upgrade: on every later upgrade the schema is migrated BEFORE the new
+  backend pods roll out, and a failed migration stops the upgrade (the old
+  pods keep serving).
+before-hook-creation,hook-succeeded: the previous Job is deleted before a new
+one is created, and a successful Job is cleaned up. A failed Job stays for
+"kubectl logs job/<name>-migrate".
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "carequeue.fullname" . }}-migrate
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "migrate") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migrations.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "carequeue.componentLabels" (dict "ctx" . "component" "migrate") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "carequeue.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "carequeue.podSecurityContext" (dict "uid" 10001) | nindent 8 }}
+      initContainers:
+        {{- include "carequeue.waitForDb" . | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "carequeue.backend.image" . | quote }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "carequeue.configName" . }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "carequeue.dbSecretName" . }}
+                  key: DATABASE_URL
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            {{- include "carequeue.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

@@ -1,0 +1,50 @@
+# Dev = the local kind cluster "cq" (scripts/kind-up.sh + scripts/deploy-local.sh).
+# Images are built locally and copied into the node with "kind load docker-image",
+# so there is no registry and nothing is pulled.
+#   helm upgrade --install carequeue helm/carequeue -n carequeue -f helm/carequeue/values-dev.yaml
+backend:
+  image:
+    repository: carequeue-backend
+    tag: local
+    pullPolicy: IfNotPresent    # "local" is not "latest", so the loaded image is used
+  env:
+    GIT_SHA: local-kind
+    LOG_LEVEL: INFO
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+          - {type: Pods, value: 2, periodSeconds: 30}
+      # Demo: scale back down 60 s after the load stops (default is 300 s).
+      scaleDown:
+        stabilizationWindowSeconds: 60
+        policies:
+          - {type: Pods, value: 2, periodSeconds: 30}
+
+frontend:
+  image:
+    repository: carequeue-frontend
+    tag: local
+    pullPolicy: IfNotPresent
+
+seed:
+  enabled: true
+  demoQueue: true
+
+ingress:
+  enabled: true
+  className: nginx
+  host: carequeue.local
+  pathOnlyRule: true
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+  prometheusRule:
+    enabled: true

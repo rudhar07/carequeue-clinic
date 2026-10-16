@@ -1,0 +1,70 @@
+# Terminal views rendered as PNG (2026-10-16T15:31:48Z). Source text for each image:
+
+$ kubectl get pods -n carequeue -o wide
+NAME                                  READY   STATUS    RESTARTS   AGE    IP            NODE               NOMINATED NODE   READINESS GATES
+carequeue-backend-ffc95c678-8n7wr     1/1     Running   0          33s    10.244.0.73   cq-control-plane   <none>           <none>
+carequeue-backend-ffc95c678-qrptp     1/1     Running   0          26s    10.244.0.76   cq-control-plane   <none>           <none>
+carequeue-frontend-6b9c489c59-4wbb7   1/1     Running   0          31s    10.244.0.75   cq-control-plane   <none>           <none>
+carequeue-frontend-6b9c489c59-7tfp7   1/1     Running   0          33s    10.244.0.74   cq-control-plane   <none>           <none>
+carequeue-postgresql-0                1/1     Running   0          107s   10.244.0.68   cq-control-plane   <none>           <none>
+
+$ kubectl get svc -n carequeue
+NAME                      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+carequeue-backend         ClusterIP   10.96.32.240   <none>        8000/TCP   95s
+carequeue-frontend        ClusterIP   10.96.241.2    <none>        80/TCP     95s
+carequeue-postgresql      ClusterIP   10.96.19.5     <none>        5432/TCP   95s
+carequeue-postgresql-hl   ClusterIP   None           <none>        5432/TCP   95s
+
+$ kubectl get ingress -n carequeue
+NAME        CLASS   HOSTS             ADDRESS     PORTS   AGE
+carequeue   nginx   carequeue.local   localhost   80      95s
+
+$ helm list -n carequeue
+NAME     	NAMESPACE	REVISION	UPDATED                            	STATUS  	CHART          	APP VERSION
+carequeue	carequeue	2       	2026-10-16 21:00:58.11485 +0530 IST	deployed	carequeue-1.0.0	1.0.0      
+
+$ helm list -A
+NAME          	NAMESPACE  	REVISION	UPDATED                             	STATUS  	CHART                       	APP VERSION
+carequeue     	carequeue  	2       	2026-10-16 21:00:58.11485 +0530 IST 	deployed	carequeue-1.0.0             	1.0.0      
+kps           	monitoring 	1       	2026-10-16 20:36:33.154571 +0530 IST	deployed	kube-prometheus-stack-92.9.0	v0.94.1    
+metrics-server	kube-system	1       	2026-10-16 20:31:41.835593 +0530 IST	deployed	metrics-server-3.14.0       	0.9.0      
+
+$ kubectl get hpa -n carequeue   (snapshots from docs/evidence/k8s-07-hpa-load-test.txt)
+[20:45:50] carequeue-backend   Deployment/carequeue-backend   cpu: 13%/60%   2     6     2     11m
+[20:46:05] carequeue-backend   Deployment/carequeue-backend   cpu: 13%/60%   2     6     2     11m
+[20:46:20] carequeue-backend   Deployment/carequeue-backend   cpu: 53%/60%   2     6     2     11m
+[20:46:35] carequeue-backend   Deployment/carequeue-backend   cpu: 420%/60%   2     6     2     11m
+[20:46:50] carequeue-backend   Deployment/carequeue-backend   cpu: 474%/60%   2     6     4     12m
+[20:47:05] carequeue-backend   Deployment/carequeue-backend   cpu: 461%/60%   2     6     4     12m
+[20:47:20] carequeue-backend   Deployment/carequeue-backend   cpu: 137%/60%   2     6     6     12m
+[20:47:35] carequeue-backend   Deployment/carequeue-backend   cpu: 221%/60%   2     6     6     12m
+[20:47:50] carequeue-backend   Deployment/carequeue-backend   cpu: 229%/60%   2     6     6     13m
+[20:48:06] carequeue-backend   Deployment/carequeue-backend   cpu: 239%/60%   2     6     6     13m
+[20:48:21] carequeue-backend   Deployment/carequeue-backend   cpu: 168%/60%   2     6     6     13m
+[20:48:36] carequeue-backend   Deployment/carequeue-backend   cpu: 126%/60%   2     6     6     13m
+[20:48:51] carequeue-backend   Deployment/carequeue-backend   cpu: 171%/60%   2     6     6     14m
+[20:49:06] carequeue-backend   Deployment/carequeue-backend   cpu: 211%/60%   2     6     6     14m
+[20:49:21] carequeue-backend   Deployment/carequeue-backend   cpu: 98%/60%   2     6     6     14m
+[20:49:36] carequeue-backend   Deployment/carequeue-backend   cpu: 45%/60%   2     6     6     14m
+[20:49:51] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     6     15m
+[20:50:06] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     6     15m
+[20:50:21] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     6     15m
+[20:50:36] carequeue-backend   Deployment/carequeue-backend   cpu: 10%/60%   2     6     5     15m
+[20:50:51] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     4     16m
+[20:51:07] carequeue-backend   Deployment/carequeue-backend   cpu: 9%/60%   2     6     3     16m
+[20:51:22] carequeue-backend   Deployment/carequeue-backend   cpu: 8%/60%   2     6     2     16m
+[20:51:22] back to minReplicas
+
+$ kubectl exec -n carequeue deploy/carequeue-frontend -- wget -qO- http://carequeue-backend:8000/metrics | grep -E "^(# (HELP|TYPE) )?(http_requests_total|carequeue_)" | head -40
+# HELP carequeue_appointments_booked_total Appointments booked through the API
+# TYPE carequeue_appointments_booked_total counter
+carequeue_appointments_booked_total 0.0
+# HELP carequeue_appointments_booked_created Appointments booked through the API
+# TYPE carequeue_appointments_booked_created gauge
+carequeue_appointments_booked_created 1.792164676660216e+09
+# HELP carequeue_appointments_status_total Appointment status changes, by the new status
+# TYPE carequeue_appointments_status_total counter
+# HELP carequeue_queue_waiting Checked-in patients waiting to be called in today, per doctor
+# TYPE carequeue_queue_waiting gauge
+# HELP http_requests_total Total number of requests by method, status and handler.
+# TYPE http_requests_total counter

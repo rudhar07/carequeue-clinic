@@ -1,0 +1,165 @@
+# Chart validation (2026-10-16T15:10:03Z); helm v4.3.0+gbec5b06, kubectl client v1.36.1
+$ helm lint helm/carequeue --strict
+==> Linting helm/carequeue
+
+1 chart(s) linted, 0 chart(s) failed
+
+$ helm lint helm/carequeue --strict -f helm/carequeue/values-dev.yaml
+==> Linting helm/carequeue
+
+1 chart(s) linted, 0 chart(s) failed
+
+$ helm lint helm/carequeue --strict -f helm/carequeue/values-prod.yaml
+==> Linting helm/carequeue
+
+1 chart(s) linted, 0 chart(s) failed
+
+$ helm template carequeue helm/carequeue -n carequeue | grep -E '^kind:' | sort | uniq -c
+   1 kind: ConfigMap
+   2 kind: Deployment
+   2 kind: HorizontalPodAutoscaler
+   1 kind: Ingress
+   2 kind: Job
+   1 kind: Pod
+   2 kind: PodDisruptionBudget
+   1 kind: Secret
+   4 kind: Service
+   1 kind: ServiceAccount
+   1 kind: StatefulSet
+
+$ helm template carequeue helm/carequeue -n carequeue -f helm/carequeue/values-prod.yaml | grep -E '^kind:' | sort | uniq -c
+   1 kind: ConfigMap
+   2 kind: Deployment
+   2 kind: HorizontalPodAutoscaler
+   1 kind: Ingress
+   1 kind: Job
+   1 kind: Pod
+   2 kind: PodDisruptionBudget
+   2 kind: Service
+   1 kind: ServiceAccount
+
+# Without the Prometheus Operator CRDs (CI's bare kind) the ServiceMonitor/PrometheusRule are skipped; with them they render:
+$ helm template carequeue helm/carequeue -n carequeue -f helm/carequeue/values-dev.yaml --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | grep -E '^kind:' | sort | uniq -c
+   1 kind: ConfigMap
+   2 kind: Deployment
+   2 kind: HorizontalPodAutoscaler
+   1 kind: Ingress
+   2 kind: Job
+   1 kind: Pod
+   2 kind: PodDisruptionBudget
+   1 kind: PrometheusRule
+   1 kind: Secret
+   4 kind: Service
+   1 kind: ServiceAccount
+   1 kind: ServiceMonitor
+   1 kind: StatefulSet
+
+# The CI contract: exactly the --set flags of .github/workflows/ci-cd.yml (deploy job)
+$ helm template carequeue helm/carequeue -n carequeue --set-string backend.image.repository=ghcr.io/rudhar07/carequeue-backend --set-string backend.image.tag=0123456789abcdef0123456789abcdef01234567 --set-string frontend.image.repository=ghcr.io/rudhar07/carequeue-frontend --set-string frontend.image.tag=0123456789abcdef0123456789abcdef01234567 --set-string backend.env.GIT_SHA=0123456789abcdef0123456789abcdef01234567 --set 'imagePullSecrets[0].name=ghcr' --set ingress.enabled=true --set-string ingress.className=nginx --set-string ingress.host=carequeue.local --set postgresql.enabled=true | grep -E 'image:|GIT_SHA|- name: ghcr|host:|ingressClassName|helm.sh/hook' | sort | uniq -c
+   6           image: "ghcr.io/rudhar07/carequeue-backend:0123456789abcdef0123456789abcdef01234567"
+   1           image: "ghcr.io/rudhar07/carequeue-frontend:0123456789abcdef0123456789abcdef01234567"
+   1           image: "postgres:17-alpine"
+   4         - name: ghcr
+   1       image: "curlimages/curl:8.17.0"
+   1     - host: "carequeue.local"
+   1     helm.sh/hook-delete-policy: before-hook-creation
+   2     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+   1     helm.sh/hook-weight: "0"
+   1     helm.sh/hook-weight: "10"
+   1     helm.sh/hook: post-install,post-upgrade
+   1     helm.sh/hook: post-install,pre-upgrade
+   1     helm.sh/hook: test
+   1   CORS_ORIGINS: "http://carequeue.local,http://localhost:8088"
+   1   GIT_SHA: "0123456789abcdef0123456789abcdef01234567"
+   1   ingressClassName: nginx
+
+# kubeconform v0.8.0: offline schema check of the rendered manifests (k8s schemas + the datree CRD catalog for ServiceMonitor/PrometheusRule)
+$ helm template carequeue helm/carequeue -n carequeue  --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | kubeconform -strict -summary -schema-location default -schema-location https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+Summary: 20 resources found parsing stdin - Valid: 20, Invalid: 0, Errors: 0, Skipped: 0
+
+$ helm template carequeue helm/carequeue -n carequeue -f helm/carequeue/values-dev.yaml --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | kubeconform -strict -summary -schema-location default -schema-location https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+Summary: 20 resources found parsing stdin - Valid: 20, Invalid: 0, Errors: 0, Skipped: 0
+
+$ helm template carequeue helm/carequeue -n carequeue -f helm/carequeue/values-prod.yaml --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | kubeconform -strict -summary -schema-location default -schema-location https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+Summary: 15 resources found parsing stdin - Valid: 15, Invalid: 0, Errors: 0, Skipped: 0
+
+$ kubeconform -strict -summary k8s/namespace.yaml troubleshooting/0[1-5]*.yaml
+Summary: 6 resources found in 5 files - Valid: 6, Invalid: 0, Errors: 0, Skipped: 0
+
+# Server-side dry run against the live kind cluster (API schema + admission, including Pod Security
+# 'restricted' and the ingress-nginx validating webhook), in a scratch namespace, deleted afterwards.
+$ kubectl create namespace cq-validate && kubectl label namespace cq-validate pod-security.kubernetes.io/enforce=restricted
+namespace/cq-validate created
+namespace/cq-validate labeled
+
+# First attempt with the dev values: the ingress-nginx admission webhook rejects the Ingress, because the
+# live release in namespace carequeue already serves host carequeue.local + /api (a real guard against two
+# Ingresses fighting over one route). Everything else is accepted:
+$ helm template carequeue helm/carequeue -n cq-validate -f helm/carequeue/values-dev.yaml --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | kubectl apply -n cq-validate --dry-run=server -f -
+poddisruptionbudget.policy/carequeue-backend created (server dry run)
+poddisruptionbudget.policy/carequeue-frontend created (server dry run)
+serviceaccount/carequeue created (server dry run)
+secret/carequeue-db created (server dry run)
+configmap/carequeue-config created (server dry run)
+service/carequeue-postgresql-hl created (server dry run)
+service/carequeue-postgresql created (server dry run)
+service/carequeue-backend created (server dry run)
+service/carequeue-frontend created (server dry run)
+deployment.apps/carequeue-backend created (server dry run)
+deployment.apps/carequeue-frontend created (server dry run)
+horizontalpodautoscaler.autoscaling/carequeue-backend created (server dry run)
+horizontalpodautoscaler.autoscaling/carequeue-frontend created (server dry run)
+statefulset.apps/carequeue-postgresql created (server dry run)
+prometheusrule.monitoring.coreos.com/carequeue-alerts created (server dry run)
+servicemonitor.monitoring.coreos.com/carequeue-backend created (server dry run)
+pod/carequeue-test-connection created (server dry run)
+job.batch/carequeue-migrate created (server dry run)
+job.batch/carequeue-seed created (server dry run)
+Error from server (BadRequest): error when creating "STDIN": admission webhook "validate.nginx.ingress.kubernetes.io" denied the request: host "carequeue.local" and path "/api" is already defined in ingress carequeue/carequeue
+
+# Same, with a host that is not in use and without the path-only rule:
+$ helm template carequeue helm/carequeue -n cq-validate -f helm/carequeue/values-dev.yaml --set ingress.host=validate.carequeue.local --set ingress.pathOnlyRule=false --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | kubectl apply -n cq-validate --dry-run=server -f -
+poddisruptionbudget.policy/carequeue-backend created (server dry run)
+poddisruptionbudget.policy/carequeue-frontend created (server dry run)
+serviceaccount/carequeue created (server dry run)
+secret/carequeue-db created (server dry run)
+configmap/carequeue-config created (server dry run)
+service/carequeue-postgresql-hl created (server dry run)
+service/carequeue-postgresql created (server dry run)
+service/carequeue-backend created (server dry run)
+service/carequeue-frontend created (server dry run)
+deployment.apps/carequeue-backend created (server dry run)
+deployment.apps/carequeue-frontend created (server dry run)
+horizontalpodautoscaler.autoscaling/carequeue-backend created (server dry run)
+horizontalpodautoscaler.autoscaling/carequeue-frontend created (server dry run)
+statefulset.apps/carequeue-postgresql created (server dry run)
+ingress.networking.k8s.io/carequeue created (server dry run)
+prometheusrule.monitoring.coreos.com/carequeue-alerts created (server dry run)
+servicemonitor.monitoring.coreos.com/carequeue-backend created (server dry run)
+pod/carequeue-test-connection created (server dry run)
+job.batch/carequeue-migrate created (server dry run)
+job.batch/carequeue-seed created (server dry run)
+
+$ helm template carequeue helm/carequeue -n cq-validate -f helm/carequeue/values-prod.yaml --api-versions monitoring.coreos.com/v1/ServiceMonitor --api-versions monitoring.coreos.com/v1/PrometheusRule | kubectl apply -n cq-validate --dry-run=server -f -
+poddisruptionbudget.policy/carequeue-backend created (server dry run)
+poddisruptionbudget.policy/carequeue-frontend created (server dry run)
+serviceaccount/carequeue created (server dry run)
+configmap/carequeue-config created (server dry run)
+service/carequeue-backend created (server dry run)
+service/carequeue-frontend created (server dry run)
+deployment.apps/carequeue-backend created (server dry run)
+deployment.apps/carequeue-frontend created (server dry run)
+horizontalpodautoscaler.autoscaling/carequeue-backend created (server dry run)
+horizontalpodautoscaler.autoscaling/carequeue-frontend created (server dry run)
+ingress.networking.k8s.io/carequeue created (server dry run)
+prometheusrule.monitoring.coreos.com/carequeue-alerts created (server dry run)
+servicemonitor.monitoring.coreos.com/carequeue-backend created (server dry run)
+pod/carequeue-test-connection created (server dry run)
+job.batch/carequeue-migrate created (server dry run)
+
+$ kubectl apply --dry-run=server -f k8s/namespace.yaml
+namespace/carequeue unchanged (server dry run)
+
+$ kubectl delete namespace cq-validate
+namespace "cq-validate" deleted
+

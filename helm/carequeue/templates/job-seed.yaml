@@ -1,0 +1,62 @@
+{{- if .Values.seed.enabled }}
+{{- /*
+Demo data (python -m app.seed [--demo-queue]) after the migration
+(hook weight 10 > the migrate Job's 0 on install). The seed is idempotent:
+doctors are matched by name, patients by phone, and the demo queue is skipped
+for a doctor who already has appointments today, so re-running it on every
+upgrade adds nothing twice.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "carequeue.fullname" . }}-seed
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" . "component" "seed") | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-weight: "10"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "carequeue.componentLabels" (dict "ctx" . "component" "seed") | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "carequeue.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- include "carequeue.podSecurityContext" (dict "uid" 10001) | nindent 8 }}
+      initContainers:
+        {{- include "carequeue.waitForDb" . | nindent 8 }}
+      containers:
+        - name: seed
+          image: {{ include "carequeue.backend.image" . | quote }}
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          command: ["python", "-m", "app.seed"{{ if .Values.seed.demoQueue }}, "--demo-queue"{{ end }}]
+          envFrom:
+            - configMapRef:
+                name: {{ include "carequeue.configName" . }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "carequeue.dbSecretName" . }}
+                  key: DATABASE_URL
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+          securityContext:
+            {{- include "carequeue.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

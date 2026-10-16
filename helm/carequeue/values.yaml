@@ -1,0 +1,186 @@
+# Default values for the CareQueue chart.
+# values-dev.yaml (local kind) and values-prod.yaml (EKS) override parts of it.
+# Everything here is safe to commit: the database password is an obviously FAKE
+# demo value. For real deployments use database.existingSecret
+# (see the comments there).
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Registry credentials, e.g. [{name: ghcr}] (CI creates the "ghcr" secret).
+imagePullSecrets: []
+
+serviceAccount:
+  create: true
+  name: ""          # "" = <fullname>
+  annotations: {}   # e.g. eks.amazonaws.com/role-arn for IRSA
+
+# ---------------------------------------------------------------- backend (API)
+backend:
+  image:
+    repository: ghcr.io/rudhar07/carequeue-backend
+    tag: ""                    # "" = Chart.appVersion. CI sets the commit SHA.
+    pullPolicy: IfNotPresent
+  # Initial replica count. With autoscaling on, the HPA owns the count after the
+  # first install (the chart keeps whatever the HPA set on later upgrades).
+  replicaCount: 2
+  port: 8000
+
+  # Non-secret settings, rendered into the ConfigMap (envFrom).
+  # GIT_SHA "" = the image tag (or Chart.appVersion); shown by GET /api/info.
+  # APP_VERSION "" = Chart.appVersion.
+  env:
+    GIT_SHA: ""
+    APP_VERSION: ""
+    LOG_LEVEL: INFO
+    CLINIC_TIMEZONE: Asia/Kolkata
+    # Same-origin through the Ingress, so CORS only matters for other origins.
+    CORS_ORIGINS: "http://carequeue.local,http://localhost:8088"
+
+  # requests are required for the CPU-based HPA (utilisation = usage / request).
+  resources:
+    requests: {cpu: 100m, memory: 160Mi}
+    limits: {cpu: 500m, memory: 320Mi}
+
+  probes:
+    # startup: give the app up to 60 s to boot before liveness starts counting.
+    startup:   {path: /health, periodSeconds: 2, timeoutSeconds: 2, failureThreshold: 30}
+    # liveness: process is alive (never touches the DB, so a DB outage does not restart pods).
+    liveness:  {path: /health, periodSeconds: 10, timeoutSeconds: 3, failureThreshold: 3}
+    # readiness: only receive traffic while PostgreSQL answers (GET /ready -> 503 otherwise).
+    readiness: {path: /ready, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3}
+
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 60
+    # autoscaling/v2 behavior. Kubernetes' default scale-down window is 300 s;
+    # values-dev.yaml shortens it to 60 s so the demo scales back quickly.
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        policies:
+          - {type: Pods, value: 2, periodSeconds: 30}
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - {type: Pods, value: 1, periodSeconds: 30}
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ------------------------------------------------------------ frontend (nginx)
+frontend:
+  image:
+    repository: ghcr.io/rudhar07/carequeue-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 200m, memory: 96Mi}
+  probes:
+    liveness:  {path: /healthz, periodSeconds: 10, timeoutSeconds: 3, failureThreshold: 3}
+    readiness: {path: /healthz, periodSeconds: 5, timeoutSeconds: 3, failureThreshold: 3}
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    behavior: {}
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  podAnnotations: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ------------------------------------------------- database schema + demo data
+# Alembic migrations run ONCE per install/upgrade in a Helm hook Job (not in
+# every backend pod). See templates/job-migrate.yaml for why the hook is
+# post-install + pre-upgrade.
+migrations:
+  enabled: true
+  backoffLimit: 3
+  activeDeadlineSeconds: 300
+
+# Idempotent demo data (python -m app.seed): 4 doctors, 12 patients and, with
+# demoQueue, a demo queue for today. Turn off for production.
+seed:
+  enabled: true
+  demoQueue: true
+
+# ------------------------------------------------------------------- database
+# Where the backend connects. host "" = the in-chart PostgreSQL Service.
+database:
+  host: ""
+  port: 5432
+  name: carequeue
+  # An existing Secret instead of the chart's own one. Keys:
+  #   DATABASE_URL       postgresql+psycopg://user:password@host:5432/db (backend)
+  #   POSTGRES_USER, POSTGRES_PASSWORD   (only if postgresql.enabled=true)
+  # Create it with External Secrets / Sealed Secrets / the AWS Secrets Manager
+  # CSI driver; never commit real credentials.
+  existingSecret: ""
+
+# In-cluster PostgreSQL (StatefulSet + PVC) for dev/demo/CI.
+# On AWS set postgresql.enabled=false and point database.host at RDS.
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "17-alpine"
+    pullPolicy: IfNotPresent
+  auth:
+    username: carequeue
+    # FAKE demo password: only for local/CI clusters (see database.existingSecret).
+    password: carequeue-demo-only-not-a-secret
+  persistence:
+    size: 1Gi
+    storageClass: ""     # "" = cluster default (kind: standard/local-path, EKS: gp3)
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+
+# -------------------------------------------------------------------- ingress
+# ingress-nginx routes / to the frontend and /api to the backend.
+ingress:
+  enabled: true
+  className: nginx
+  host: carequeue.local
+  # Also add a rule without a host, so http://localhost (kind) and a bare
+  # load-balancer address work without a Host header or /etc/hosts entry.
+  pathOnlyRule: true
+  annotations: {}
+  tls: []
+  #  - secretName: carequeue-tls
+  #    hosts: [carequeue.example.com]
+
+# ----------------------------------------------------------------- monitoring
+# Rendered only when the Prometheus Operator CRDs (monitoring.coreos.com/v1)
+# exist, so the chart still installs on a bare cluster (e.g. CI's kind).
+monitoring:
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    labels: {}   # e.g. {release: kps} if the Prometheus selects by label
+  prometheusRule:
+    enabled: true
+    labels: {}
+    # Alert thresholds
+    errorRatePercent: 5      # 5xx share of requests over 5 minutes
+    queueWaitingMax: 10      # checked-in patients waiting for one doctor
+
+# ------------------------------------------------------------------ helm test
+tests:
+  image: curlimages/curl:8.17.0

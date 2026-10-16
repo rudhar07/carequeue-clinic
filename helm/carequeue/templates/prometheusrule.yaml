@@ -1,0 +1,53 @@
+{{- if and .Values.monitoring.prometheusRule.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/PrometheusRule") }}
+{{- $ns := .Release.Namespace }}
+{{- $svc := include "carequeue.backend.fullname" . }}
+{{- $sel := printf "namespace=\"%s\", service=\"%s\"" $ns $svc }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "carequeue.fullname" . }}-alerts
+  labels:
+    {{- include "carequeue.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.prometheusRule.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: carequeue.rules
+      rules:
+        # No backend pod has answered a scrape for 2 minutes (also fires when
+        # the target disappears completely, e.g. the Deployment was scaled to 0).
+        - alert: CareQueueBackendDown
+          expr: (sum(up{ {{- $sel -}} }) or vector(0)) == 0
+          for: 2m
+          labels:
+            severity: critical
+            app: carequeue
+          annotations:
+            summary: "CareQueue backend is down"
+            description: "No {{ $svc }} pod in {{ $ns }} has been scraped successfully for 2 minutes."
+            runbook: "troubleshooting/README.md"
+        # More than N% of API requests returned 5xx over the last 5 minutes.
+        - alert: CareQueueHigh5xxRate
+          expr: |
+            100 * sum(rate(http_requests_total{ {{- $sel -}}, status=~"5.."}[5m]))
+              / clamp_min(sum(rate(http_requests_total{ {{- $sel -}} }[5m])), 0.001)
+              > {{ .Values.monitoring.prometheusRule.errorRatePercent }}
+          for: 5m
+          labels:
+            severity: warning
+            app: carequeue
+          annotations:
+            summary: "CareQueue API 5xx error rate is high"
+            description: {{ printf "{{ $value | printf \"%%.1f\" }}%% of API requests failed with 5xx over 5 minutes (threshold %v%%)." .Values.monitoring.prometheusRule.errorRatePercent | quote }}
+        # A doctor has too many checked-in patients waiting (the waiting room is full).
+        - alert: CareQueueQueueTooLong
+          expr: max by (doctor) (carequeue_queue_waiting{ {{- $sel -}} }) > {{ .Values.monitoring.prometheusRule.queueWaitingMax }}
+          for: 10m
+          labels:
+            severity: warning
+            app: carequeue
+          annotations:
+            summary: "Long patient queue"
+            description: {{ printf "{{ $labels.doctor }} has {{ $value }} checked-in patients waiting (threshold %v) for 10 minutes." .Values.monitoring.prometheusRule.queueWaitingMax | quote }}
+{{- end }}

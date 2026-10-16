@@ -1,0 +1,138 @@
+# CareQueue on kind cluster 'cq' (2026-10-16T15:14:37Z)
+$ kubectl get nodes -o wide
+NAME               STATUS   ROLES           AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+cq-control-plane   Ready    control-plane   13m   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.12.76-linuxkit (arm64)   containerd://2.3.4
+
+$ kubectl get pods -n carequeue -o wide
+NAME                                  READY   STATUS    RESTARTS   AGE     IP            NODE               NOMINATED NODE   READINESS GATES
+carequeue-backend-ffc95c678-dftrl     1/1     Running   0          9m52s   10.244.0.9    cq-control-plane   <none>           <none>
+carequeue-backend-ffc95c678-hszdb     1/1     Running   0          9m52s   10.244.0.10   cq-control-plane   <none>           <none>
+carequeue-frontend-6b9c489c59-btp6r   1/1     Running   0          9m52s   10.244.0.11   cq-control-plane   <none>           <none>
+carequeue-frontend-6b9c489c59-pmb8b   1/1     Running   0          9m52s   10.244.0.12   cq-control-plane   <none>           <none>
+carequeue-postgresql-0                1/1     Running   0          9m52s   10.244.0.15   cq-control-plane   <none>           <none>
+
+$ kubectl get svc -n carequeue
+NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+carequeue-backend         ClusterIP   10.96.94.172    <none>        8000/TCP   9m52s
+carequeue-frontend        ClusterIP   10.96.129.195   <none>        80/TCP     9m52s
+carequeue-postgresql      ClusterIP   10.96.34.199    <none>        5432/TCP   9m52s
+carequeue-postgresql-hl   ClusterIP   None            <none>        5432/TCP   9m52s
+
+$ kubectl get endpointslices -n carequeue
+NAME                            ADDRESSTYPE   PORTS   ENDPOINTS                 AGE
+carequeue-backend-s5pxd         IPv4          8000    10.244.0.10,10.244.0.9    9m52s
+carequeue-frontend-srlt8        IPv4          8080    10.244.0.12,10.244.0.11   9m52s
+carequeue-postgresql-f4f8w      IPv4          5432    10.244.0.15               9m52s
+carequeue-postgresql-hl-hjqq9   IPv4          5432    10.244.0.15               9m52s
+
+$ kubectl get ingress -n carequeue
+NAME        CLASS   HOSTS             ADDRESS     PORTS   AGE
+carequeue   nginx   carequeue.local   localhost   80      9m52s
+
+$ kubectl describe ingress carequeue -n carequeue
+Name:             carequeue
+Labels:           app.kubernetes.io/instance=carequeue
+                  app.kubernetes.io/managed-by=Helm
+                  app.kubernetes.io/name=carequeue
+                  app.kubernetes.io/part-of=carequeue
+                  app.kubernetes.io/version=1.0.0
+                  helm.sh/chart=carequeue-1.0.0
+Namespace:        carequeue
+Address:          localhost
+Ingress Class:    nginx
+Default backend:  <default>
+Rules:
+  Host             Path  Backends
+  ----             ----  --------
+  carequeue.local  
+                   /api   carequeue-backend:http (10.244.0.10:8000,10.244.0.9:8000)
+                   /      carequeue-frontend:http (10.244.0.12:8080,10.244.0.11:8080)
+  *                
+                   /api   carequeue-backend:http (10.244.0.10:8000,10.244.0.9:8000)
+                   /      carequeue-frontend:http (10.244.0.12:8080,10.244.0.11:8080)
+Annotations:       meta.helm.sh/release-name: carequeue
+                   meta.helm.sh/release-namespace: carequeue
+Events:
+  Type    Reason  Age                    From                      Message
+  ----    ------  ----                   ----                      -------
+  Normal  Sync    9m11s (x2 over 9m52s)  nginx-ingress-controller  Scheduled for sync
+
+$ kubectl get hpa,pdb -n carequeue
+NAME                                                     REFERENCE                       TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/carequeue-backend    Deployment/carequeue-backend    cpu: 9%/60%   2         6         2          9m52s
+horizontalpodautoscaler.autoscaling/carequeue-frontend   Deployment/carequeue-frontend   cpu: 5%/70%   2         4         2          9m52s
+
+NAME                                            MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+poddisruptionbudget.policy/carequeue-backend    1               N/A               1                     9m52s
+poddisruptionbudget.policy/carequeue-frontend   1               N/A               1                     9m52s
+
+$ kubectl get statefulset,pvc -n carequeue
+NAME                                    READY   AGE
+statefulset.apps/carequeue-postgresql   1/1     9m52s
+
+NAME                                                STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-carequeue-postgresql-0   Bound    pvc-8607b747-da3a-4954-a4f3-9f143f627a60   1Gi        RWO            standard       <unset>                 9m52s
+
+$ helm list -n carequeue
+NAME     	NAMESPACE	REVISION	UPDATED                             	STATUS  	CHART          	APP VERSION
+carequeue	carequeue	2       	2026-10-16 20:44:10.516348 +0530 IST	deployed	carequeue-1.0.0	1.0.0      
+
+$ helm list -A
+NAME          	NAMESPACE  	REVISION	UPDATED                             	STATUS  	CHART                       	APP VERSION
+carequeue     	carequeue  	2       	2026-10-16 20:44:10.516348 +0530 IST	deployed	carequeue-1.0.0             	1.0.0      
+kps           	monitoring 	1       	2026-10-16 20:36:33.154571 +0530 IST	deployed	kube-prometheus-stack-92.9.0	v0.94.1    
+metrics-server	kube-system	1       	2026-10-16 20:31:41.835593 +0530 IST	deployed	metrics-server-3.14.0       	0.9.0      
+
+$ helm test carequeue -n carequeue --logs
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:44:10 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 2
+DESCRIPTION: Upgrade complete
+TEST SUITE:     carequeue-test-connection
+Last Started:   Fri Oct 16 20:44:38 2026
+Last Completed: Fri Oct 16 20:44:59 2026
+Phase:          Succeeded
+
+POD LOGS: carequeue-test-connection (curl)
+== backend readiness (http://carequeue-backend:8000/ready)
+{"status":"ready","database":"up"}
+== backend liveness (http://carequeue-backend:8000/health)
+{"status":"ok"}
+== frontend -> nginx /api proxy -> backend (http://carequeue-frontend/api/info)
+{"app":"carequeue","version":"1.0.0","commit":"local-kind"}
+== frontend serves the SPA
+== API data through the proxy (http://carequeue-frontend/api/doctors)
+[{"id":3,"full_name":"Dr. Kavya Reddy","specialty":"Dermatology","room":"201","slot_minutes":15,"start_time":"11:00:00","end_time":"18:00:00","is_active":true},{"id":1,"full_name":"Dr. Ananya Iyer","specialty":"General Medicine","room":"101","slot_minutes":15,"start_time":"09:00:00","end_time":"17:0
+helm test: OK
+
+
+# Hook Jobs (migrate/seed) are deleted after success (hook-delete-policy before-hook-creation,hook-succeeded);
+# the schema they created:
+$ kubectl exec -n carequeue carequeue-postgresql-0 -- psql -U carequeue -d carequeue -c 'select version_num from alembic_version' -c '\dt'
+ version_num 
+-------------
+ 0001
+(1 row)
+
+              List of relations
+ Schema |      Name       | Type  |   Owner   
+--------+-----------------+-------+-----------
+ public | alembic_version | table | carequeue
+ public | appointments    | table | carequeue
+ public | doctors         | table | carequeue
+ public | patients        | table | carequeue
+(4 rows)
+
+
+$ kubectl exec -n carequeue carequeue-postgresql-0 -- psql -U carequeue -d carequeue -c 'select d.full_name, count(a.id) as appointments_today from doctors d left join appointments a on a.doctor_id = d.id and a.appointment_date = current_date group by d.full_name order by 1'
+    full_name    | appointments_today 
+-----------------+--------------------
+ Dr. Ananya Iyer |                  9
+ Dr. Arjun Singh |                  6
+ Dr. Kavya Reddy |                  7
+ Dr. Rohan Mehta |                  8
+(4 rows)
+
+

@@ -1,0 +1,103 @@
+# Pod hardening and the backend /metrics endpoint (2026-10-16T15:15:12Z)
+$ kubectl get namespace carequeue --show-labels
+NAME        STATUS   AGE   LABELS
+carequeue   Active   14m   app.kubernetes.io/name=carequeue,app.kubernetes.io/part-of=carequeue,environment=dev,kubernetes.io/metadata.name=carequeue,name=carequeue,pod-security.kubernetes.io/audit=restricted,pod-security.kubernetes.io/enforce-version=latest,pod-security.kubernetes.io/enforce=restricted,pod-security.kubernetes.io/warn=restricted
+
+$ kubectl get pods -n carequeue -o custom-columns='POD:.metadata.name,RUN_AS_NON_ROOT:.spec.securityContext.runAsNonRoot,UID:.spec.securityContext.runAsUser,SECCOMP:.spec.securityContext.seccompProfile.type,RO_ROOTFS:.spec.containers[0].securityContext.readOnlyRootFilesystem,PRIV_ESC:.spec.containers[0].securityContext.allowPrivilegeEscalation,CAPS_DROP:.spec.containers[0].securityContext.capabilities.drop,SA_TOKEN:.spec.automountServiceAccountToken'
+POD                                   RUN_AS_NON_ROOT   UID     SECCOMP          RO_ROOTFS   PRIV_ESC   CAPS_DROP   SA_TOKEN
+carequeue-backend-ffc95c678-dftrl     true              10001   RuntimeDefault   true        false      [ALL]       false
+carequeue-backend-ffc95c678-hszdb     true              10001   RuntimeDefault   true        false      [ALL]       false
+carequeue-frontend-6b9c489c59-btp6r   true              101     RuntimeDefault   true        false      [ALL]       false
+carequeue-frontend-6b9c489c59-pmb8b   true              101     RuntimeDefault   true        false      [ALL]       false
+carequeue-postgresql-0                true              70      RuntimeDefault   true        false      [ALL]       false
+carequeue-test-connection             true              100     RuntimeDefault   true        false      [ALL]       false
+
+$ kubectl get deploy carequeue-backend -n carequeue -o jsonpath='{range .spec.template.spec.initContainers[*]}initContainer: {.name}{"\n"}{end}{range .spec.template.spec.containers[*]}container: {.name}  requests={.resources.requests}  limits={.resources.limits}{"\n"}  startup={.startupProbe.httpGet.path} liveness={.livenessProbe.httpGet.path} readiness={.readinessProbe.httpGet.path}{"\n"}{end}'
+initContainer: wait-for-db
+container: backend  requests={"cpu":"100m","memory":"160Mi"}  limits={"cpu":"500m","memory":"320Mi"}
+  startup=/health liveness=/health readiness=/ready
+
+$ kubectl logs -n carequeue deploy/carequeue-backend -c wait-for-db
+Found 2 pods, using pod/carequeue-backend-ffc95c678-dftrl
+waiting for database carequeue-postgresql:5432 (1/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (2/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (3/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (4/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (5/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (6/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (7/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (8/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (9/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (10/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (11/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (12/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (13/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (14/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (15/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (16/90): [Errno 111] Connection refused
+waiting for database carequeue-postgresql:5432 (17/90): [Errno 111] Connection refused
+database carequeue-postgresql:5432 is reachable
+
+$ kubectl exec -n carequeue deploy/carequeue-backend -c backend -- id
+uid=10001(carequeue) gid=10001(carequeue) groups=10001(carequeue)
+
+$ kubectl exec -n carequeue deploy/carequeue-backend -c backend -- sh -c 'touch /app/x 2>&1; touch /tmp/ok && echo /tmp is writable'
+touch: cannot touch '/app/x': Read-only file system
+/tmp is writable
+
+$ kubectl exec -n carequeue deploy/carequeue-frontend -- sh -c 'id; touch /usr/share/nginx/html/x 2>&1; head -3 /etc/nginx/conf.d/default.conf; grep proxy_pass /etc/nginx/conf.d/default.conf'
+uid=101(nginx) gid=101(nginx) groups=101(nginx)
+touch: /usr/share/nginx/html/x: Read-only file system
+# CareQueue UI server. The nginx image renders /etc/nginx/templates/*.template
+# into /etc/nginx/conf.d/ at start-up with envsubst, replacing only variables
+# that exist in the environment (so nginx's own $uri, $host... are untouched).
+    proxy_pass http://carequeue-backend:8000;
+
+# GET /metrics on the backend Service (in-cluster; the Ingress does not expose /metrics):
+$ kubectl exec -n carequeue deploy/carequeue-frontend -- wget -qO- http://carequeue-backend:8000/metrics | grep -E '^# (HELP|TYPE) (http_requests_total|http_request_duration_seconds|carequeue_)|^http_requests_total|^carequeue_' | head -45
+# HELP carequeue_appointments_booked_total Appointments booked through the API
+# TYPE carequeue_appointments_booked_total counter
+carequeue_appointments_booked_total 1.0
+# HELP carequeue_appointments_booked_created Appointments booked through the API
+# TYPE carequeue_appointments_booked_created gauge
+carequeue_appointments_booked_created 1.7921631275541883e+09
+# HELP carequeue_appointments_status_total Appointment status changes, by the new status
+# TYPE carequeue_appointments_status_total counter
+carequeue_appointments_status_total{status="checked_in"} 3.0
+carequeue_appointments_status_total{status="in_consultation"} 2.0
+carequeue_appointments_status_total{status="completed"} 2.0
+carequeue_appointments_status_total{status="no_show"} 1.0
+carequeue_appointments_status_total{status="booked"} 1.0
+# HELP carequeue_appointments_status_created Appointment status changes, by the new status
+# TYPE carequeue_appointments_status_created gauge
+carequeue_appointments_status_created{status="checked_in"} 1.7921632026988344e+09
+carequeue_appointments_status_created{status="in_consultation"} 1.7921632027560015e+09
+carequeue_appointments_status_created{status="completed"} 1.7921632028642313e+09
+carequeue_appointments_status_created{status="no_show"} 1.7921632030929048e+09
+carequeue_appointments_status_created{status="booked"} 1.7921632166282513e+09
+# HELP carequeue_queue_waiting Checked-in patients waiting to be called in today, per doctor
+# TYPE carequeue_queue_waiting gauge
+carequeue_queue_waiting{doctor="Dr. Ananya Iyer"} 3.0
+carequeue_queue_waiting{doctor="Dr. Rohan Mehta"} 3.0
+carequeue_queue_waiting{doctor="Dr. Kavya Reddy"} 3.0
+carequeue_queue_waiting{doctor="Dr. Arjun Singh"} 2.0
+carequeue_queue_waiting{doctor="Dr. Nikhil Bose"} 1.0
+# HELP http_requests_total Total number of requests by method, status and handler.
+# TYPE http_requests_total counter
+http_requests_total{handler="/api/info",method="GET",status="200"} 4.0
+http_requests_total{handler="/api/stats/today",method="GET",status="200"} 3.0
+http_requests_total{handler="/api/doctors",method="GET",status="200"} 2.0
+http_requests_total{handler="/api/patients",method="POST",status="409"} 1.0
+http_requests_total{handler="/api/appointments",method="POST",status="409"} 1.0
+http_requests_total{handler="/api/appointments/{appointment_id}/status",method="PATCH",status="200"} 8.0
+http_requests_total{handler="/api/appointments",method="GET",status="200"} 1.0
+http_requests_total{handler="/api/patients/{patient_id}",method="PUT",status="200"} 2.0
+http_requests_total{handler="/api/appointments/{appointment_id}",method="DELETE",status="409"} 2.0
+http_requests_total{handler="/api/appointments/{appointment_id}",method="DELETE",status="204"} 1.0
+http_requests_total{handler="/api/patients/{patient_id}",method="DELETE",status="204"} 3.0
+http_requests_total{handler="/api/doctors",method="POST",status="201"} 1.0
+http_requests_total{handler="/api/patients",method="POST",status="201"} 1.0
+http_requests_total{handler="/api/appointments",method="POST",status="201"} 1.0
+http_requests_total{handler="/api/appointments",method="POST",status="422"} 1.0
+http_requests_total{handler="/api/appointments/{appointment_id}/status",method="PATCH",status="409"} 1.0
+

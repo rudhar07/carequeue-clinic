@@ -1,0 +1,18 @@
+# Namespace for the CareQueue release.
+#   kubectl apply -f k8s/namespace.yaml
+# The Helm deploy also works without this file (--create-namespace), but applying
+# it first gives the namespace its labels, including the Pod Security Admission
+# labels: every CareQueue pod runs as non-root with all capabilities dropped and
+# the RuntimeDefault seccomp profile, so the "restricted" profile is enforced.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: carequeue
+  labels:
+    app.kubernetes.io/name: carequeue
+    app.kubernetes.io/part-of: carequeue
+    environment: dev
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted

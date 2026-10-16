@@ -1,0 +1,27 @@
+# Local kind cluster for CareQueue (used by scripts/kind-up.sh).
+#   kind create cluster --name cq --config k8s/kind-config.yaml
+# One control-plane node is enough for the demo (it also runs workloads).
+# ingress-nginx (kind provider manifest) binds hostPort 80/443 on the node that
+# has the ingress-ready=true label; kind maps those to the Mac/Linux host:
+#   http://localhost:8088   https://localhost:8448
+# (8088/8448 instead of 80/443 so nothing needs root and nothing clashes with
+# other local services; CI maps 80/443 directly.)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 8088
+        listenAddress: "127.0.0.1"
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 8448
+        listenAddress: "127.0.0.1"
+        protocol: TCP

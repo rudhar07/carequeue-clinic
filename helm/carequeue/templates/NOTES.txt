@@ -1,0 +1,35 @@
+CareQueue {{ .Chart.AppVersion }} is deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Backend image:  {{ include "carequeue.backend.image" . }}
+Frontend image: {{ include "carequeue.frontend.image" . }}
+Commit (GIT_SHA): {{ include "carequeue.gitSha" . }}
+
+1. Check the pods (expect >= 2 backend and >= 2 frontend pods Running):
+   kubectl get pods,svc,ingress,hpa -n {{ .Release.Namespace }}
+
+2. Run the connection test:
+   helm test {{ .Release.Name }} -n {{ .Release.Namespace }} --logs
+{{- if .Values.ingress.enabled }}
+
+3. Open the app through the Ingress (class "{{ .Values.ingress.className }}"):
+{{- if .Values.ingress.host }}
+   http://{{ .Values.ingress.host }}/
+   On kind (scripts/kind-up.sh maps the ingress to localhost:8088):
+     curl -H 'Host: {{ .Values.ingress.host }}' http://localhost:8088/api/info
+     or add "127.0.0.1 {{ .Values.ingress.host }}" to /etc/hosts and open http://{{ .Values.ingress.host }}:8088/
+{{- end }}
+{{- if or .Values.ingress.pathOnlyRule (not .Values.ingress.host) }}
+   Without a Host header (path-only rule): http://localhost:8088/ on kind
+{{- end }}
+{{- else }}
+
+3. Without an Ingress, port-forward the UI:
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "carequeue.frontend.fullname" . }} 8080:80
+   then open http://localhost:8080/
+{{- end }}
+{{- if not (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor") }}
+
+Note: the Prometheus Operator CRDs are not installed, so the ServiceMonitor and
+PrometheusRule were skipped. Install monitoring (monitoring/README.md), then
+run "helm upgrade" again.
+{{- end }}

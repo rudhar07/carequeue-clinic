@@ -1,0 +1,86 @@
+# kind cluster bootstrap (2026-10-16T14:59:38Z); KUBECONFIG = a private kubeconfig file, not ~/.kube/config
+# (one local file path in kind's output is redacted as <private-kubeconfig>)
+$ scripts/kind-up.sh
+Creating cluster "cq" ...
+ • Ensuring node image (kindest/node:v1.37.0) 🖼️  ...
+ ✓ Ensuring node image (kindest/node:v1.37.0) 🖼️
+ • Preparing nodes 📦   ...
+ ✓ Preparing nodes 📦 
+ • Writing configuration 📜  ...
+ ✓ Writing configuration 📜
+ • Starting control-plane 🕹️  ...
+ ✓ Starting control-plane 🕹️
+ • Installing CNI 🔌  ...
+ ✓ Installing CNI 🔌
+ • Installing StorageClass 💾  ...
+ ✓ Installing StorageClass 💾
+ • Waiting ≤ 3m0s for control-plane = Ready ⏳  ...
+ ✓ Waiting ≤ 3m0s for control-plane = Ready ⏳
+ • Ready after 18s 💚
+Set kubectl context to "kind-cq"
+You can now use your cluster with:
+
+kubectl cluster-info --context kind-cq --kubeconfig <private-kubeconfig>
+
+Thanks for using kind! 😊
+Kubernetes control plane is running at https://127.0.0.1:50262
+CoreDNS is running at https://127.0.0.1:50262/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+--- namespace
+namespace/carequeue created
+--- ingress-nginx controller-v1.15.1
+namespace/ingress-nginx created
+serviceaccount/ingress-nginx created
+serviceaccount/ingress-nginx-admission created
+role.rbac.authorization.k8s.io/ingress-nginx created
+role.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx created
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx created
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
+configmap/ingress-nginx-controller created
+service/ingress-nginx-controller created
+service/ingress-nginx-controller-admission created
+deployment.apps/ingress-nginx-controller created
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx created
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
+job.batch/ingress-nginx-admission-create condition met
+job.batch/ingress-nginx-admission-patch condition met
+deployment.apps/ingress-nginx-controller condition met
+--- metrics-server 3.14.0
+Release "metrics-server" does not exist. Installing it now.
+NAME: metrics-server
+LAST DEPLOYED: Fri Oct 16 20:31:41 2026
+NAMESPACE: kube-system
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE: None
+NOTES:
+***********************************************************************
+* Metrics Server                                                      *
+***********************************************************************
+  Chart version: 3.14.0
+  App version:   0.9.0
+  Image tag:     registry.k8s.io/metrics-server/metrics-server:v0.9.0
+***********************************************************************
+NAME               STATUS   ROLES           AGE    VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE                       KERNEL-VERSION             CONTAINER-RUNTIME
+cq-control-plane   Ready    control-plane   105s   v1.37.0   172.18.0.2    <none>        Debian GNU/Linux 13 (trixie)   6.12.76-linuxkit (arm64)   containerd://2.3.4
+NAMESPACE            NAME                                        READY   STATUS    RESTARTS   AGE
+ingress-nginx        ingress-nginx-controller-596f5b6bcf-4hzss   0/1     Running   0          74s
+kube-system          coredns-559f6c778d-9d9wt                    1/1     Running   0          94s
+kube-system          coredns-559f6c778d-n5grp                    1/1     Running   0          94s
+kube-system          etcd-cq-control-plane                       1/1     Running   0          102s
+kube-system          kindnet-lprg6                               1/1     Running   0          94s
+kube-system          kube-apiserver-cq-control-plane             1/1     Running   0          103s
+kube-system          kube-controller-manager-cq-control-plane    1/1     Running   0          103s
+kube-system          kube-proxy-2zbfr                            1/1     Running   0          94s
+kube-system          kube-scheduler-cq-control-plane             1/1     Running   0          102s
+kube-system          metrics-server-995d47bd7-wtqlf              1/1     Running   0          43s
+local-path-storage   local-path-provisioner-75f7fc7dc5-cxwvs     1/1     Running   0          94s
+Cluster cq is ready. Next: scripts/deploy-local.sh

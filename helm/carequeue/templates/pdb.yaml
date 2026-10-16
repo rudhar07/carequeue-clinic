@@ -1,0 +1,18 @@
+{{- /* Keep at least one pod of each tier during node drains / cluster upgrades. */}}
+{{- range $component := list "backend" "frontend" }}
+{{- $cfg := index $.Values $component }}
+{{- if $cfg.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "carequeue.fullname" $ }}-{{ $component }}
+  labels:
+    {{- include "carequeue.componentLabels" (dict "ctx" $ "component" $component) | nindent 4 }}
+spec:
+  minAvailable: {{ $cfg.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "carequeue.selectorLabels" (dict "ctx" $ "component" $component) | nindent 6 }}
+{{- end }}
+{{- end }}

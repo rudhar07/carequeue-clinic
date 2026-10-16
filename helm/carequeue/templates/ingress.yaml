@@ -1,0 +1,56 @@
+{{- if .Values.ingress.enabled }}
+{{- /*
+  /     -> frontend Service (React SPA served by nginx)
+  /api  -> backend Service (FastAPI; all API routes already start with /api,
+           so no rewrite is needed)
+One rule per host, plus (pathOnlyRule) the same paths without a host so that
+http://localhost works on kind without a Host header.
+*/}}
+{{- $backend := include "carequeue.backend.fullname" . }}
+{{- $frontend := include "carequeue.frontend.fullname" . }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "carequeue.fullname" . }}
+  labels:
+    {{- include "carequeue.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- $hosts := list }}
+    {{- if .Values.ingress.host }}{{ $hosts = append $hosts .Values.ingress.host }}{{ end }}
+    {{- if or .Values.ingress.pathOnlyRule (not .Values.ingress.host) }}{{ $hosts = append $hosts "" }}{{ end }}
+    {{- range $hosts }}
+    {{- if . }}
+    - host: {{ . | quote }}
+      http:
+    {{- else }}
+    - http:
+    {{- end }}
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $backend }}
+                port:
+                  name: http
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $frontend }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}

@@ -1,0 +1,151 @@
+# Replay of the CI deploy job (.github/workflows/ci-cd.yml, job 'deploy') on the local kind cluster 'cq' (2026-10-16T15:29:40Z)
+# The run: blocks of these steps were extracted from the workflow YAML and executed unchanged, except:
+#   * http://localhost/  ->  http://localhost:8088/   (this cluster maps the ingress to 8088; CI maps port 80)
+#   * REGISTRY=docker.io/library and a stand-in GITHUB_SHA: the local images were re-tagged with that SHA and
+#     'kind load'ed, instead of being pulled from GHCR
+#   * GHCR_TOKEN is a dummy value (the pull secret is created exactly as in CI but never needed: images are local)
+# Not replayed: checkout, 'Write kind config' + 'Create kind cluster' (the cq cluster already exists).
+# GITHUB_SHA=c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1
+
+# Start from a fresh release, as on a CI runner:
+$ helm uninstall carequeue -n carequeue --wait
+release "carequeue" uninstalled
+
+$ kubectl delete pvc -n carequeue data-carequeue-postgresql-0 --wait=true
+persistentvolumeclaim "data-carequeue-postgresql-0" deleted from carequeue namespace
+
+$ kubectl delete secret ghcr -n carequeue
+secret "ghcr" deleted from carequeue namespace
+
+$ kubectl get all,pvc -n carequeue
+NAME                            READY   STATUS      RESTARTS   AGE
+pod/carequeue-test-connection   0/1     Completed   0          2m55s
+
+===== step: Install ingress-nginx (kind provider manifest)
+namespace/ingress-nginx unchanged
+serviceaccount/ingress-nginx unchanged
+serviceaccount/ingress-nginx-admission unchanged
+role.rbac.authorization.k8s.io/ingress-nginx unchanged
+role.rbac.authorization.k8s.io/ingress-nginx-admission unchanged
+clusterrole.rbac.authorization.k8s.io/ingress-nginx unchanged
+clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission unchanged
+rolebinding.rbac.authorization.k8s.io/ingress-nginx unchanged
+rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission unchanged
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx unchanged
+clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission unchanged
+configmap/ingress-nginx-controller configured
+service/ingress-nginx-controller unchanged
+service/ingress-nginx-controller-admission unchanged
+deployment.apps/ingress-nginx-controller configured
+job.batch/ingress-nginx-admission-create created
+job.batch/ingress-nginx-admission-patch created
+ingressclass.networking.k8s.io/nginx unchanged
+validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission configured
+deployment "ingress-nginx-controller" successfully rolled out
+ingress-nginx admission webhook ready after ~3s
+===== step result: Install ingress-nginx (kind provider manifest): exit 0
+===== step: Namespace + GHCR imagePullSecret
+namespace/carequeue unchanged
+secret/ghcr created
+===== step result: Namespace + GHCR imagePullSecret: exit 0
+===== step: helm upgrade --install
+v4.3.0+gbec5b06
+Release "carequeue" does not exist. Installing it now.
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:59:51 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+NOTES:
+CareQueue 1.0.0 is deployed as release "carequeue" in namespace "carequeue".
+
+Backend image:  docker.io/library/carequeue-backend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1
+Frontend image: docker.io/library/carequeue-frontend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1
+Commit (GIT_SHA): c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1
+
+1. Check the pods (expect >= 2 backend and >= 2 frontend pods Running):
+   kubectl get pods,svc,ingress,hpa -n carequeue
+
+2. Run the connection test:
+   helm test carequeue -n carequeue --logs
+
+3. Open the app through the Ingress (class "nginx"):
+   http://carequeue.local/
+   On kind (scripts/kind-up.sh maps the ingress to localhost:8088):
+     curl -H 'Host: carequeue.local' http://localhost:8088/api/info
+     or add "127.0.0.1 carequeue.local" to /etc/hosts and open http://carequeue.local:8088/
+   Without a Host header (path-only rule): http://localhost:8088/ on kind
+===== step result: helm upgrade --install: exit 0
+===== step: kubectl rollout status
+deployment "carequeue-backend" successfully rolled out
+deployment "carequeue-frontend" successfully rolled out
+NAME     	NAMESPACE	REVISION	UPDATED                            	STATUS  	CHART          	APP VERSION
+carequeue	carequeue	1       	2026-10-16 20:59:51.49317 +0530 IST	deployed	carequeue-1.0.0	1.0.0      
+NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES                                                                          SELECTOR
+deployment.apps/carequeue-backend    2/2     2            2           32s   backend      docker.io/library/carequeue-backend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1    app.kubernetes.io/component=backend,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+deployment.apps/carequeue-frontend   2/2     2            2           32s   frontend     docker.io/library/carequeue-frontend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1   app.kubernetes.io/component=frontend,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+
+NAME                                     READY   STATUS      RESTARTS   AGE     IP            NODE               NOMINATED NODE   READINESS GATES
+pod/carequeue-backend-fdd767765-fjv8q    1/1     Running     0          32s     10.244.0.65   cq-control-plane   <none>           <none>
+pod/carequeue-backend-fdd767765-g7wr6    1/1     Running     0          32s     10.244.0.64   cq-control-plane   <none>           <none>
+pod/carequeue-frontend-cfc6c5df7-cvmj2   1/1     Running     0          32s     10.244.0.63   cq-control-plane   <none>           <none>
+pod/carequeue-frontend-cfc6c5df7-vwmkh   1/1     Running     0          32s     10.244.0.66   cq-control-plane   <none>           <none>
+pod/carequeue-postgresql-0               1/1     Running     0          32s     10.244.0.68   cq-control-plane   <none>           <none>
+pod/carequeue-test-connection            0/1     Completed   0          3m36s   10.244.0.48   cq-control-plane   <none>           <none>
+
+NAME                              TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+service/carequeue-backend         ClusterIP   10.96.32.240   <none>        8000/TCP   32s   app.kubernetes.io/component=backend,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+service/carequeue-frontend        ClusterIP   10.96.241.2    <none>        80/TCP     32s   app.kubernetes.io/component=frontend,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+service/carequeue-postgresql      ClusterIP   10.96.19.5     <none>        5432/TCP   32s   app.kubernetes.io/component=postgresql,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+service/carequeue-postgresql-hl   ClusterIP   None           <none>        5432/TCP   32s   app.kubernetes.io/component=postgresql,app.kubernetes.io/instance=carequeue,app.kubernetes.io/name=carequeue
+
+NAME                                  CLASS   HOSTS             ADDRESS   PORTS   AGE
+ingress.networking.k8s.io/carequeue   nginx   carequeue.local             80      32s
+===== step result: kubectl rollout status: exit 0
+===== step: helm test
+NAME: carequeue
+LAST DEPLOYED: Fri Oct 16 20:59:51 2026
+NAMESPACE: carequeue
+STATUS: deployed
+REVISION: 1
+DESCRIPTION: Install complete
+TEST SUITE:     carequeue-test-connection
+Last Started:   Fri Oct 16 21:00:23 2026
+Last Completed: Fri Oct 16 21:00:26 2026
+Phase:          Succeeded
+
+POD LOGS: carequeue-test-connection (curl)
+== backend readiness (http://carequeue-backend:8000/ready)
+{"status":"ready","database":"up"}
+== backend liveness (http://carequeue-backend:8000/health)
+{"status":"ok"}
+== frontend -> nginx /api proxy -> backend (http://carequeue-frontend/api/info)
+{"app":"carequeue","version":"1.0.0","commit":"c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1"}
+== frontend serves the SPA
+== API data through the proxy (http://carequeue-frontend/api/doctors)
+[{"id":3,"full_name":"Dr. Kavya Reddy","specialty":"Dermatology","room":"201","slot_minutes":15,"start_time":"11:00:00","end_time":"18:00:00","is_active":true},{"id":1,"full_name":"Dr. Ananya Iyer","specialty":"General Medicine","room":"101","slot_minutes":15,"start_time":"09:00:00","end_time":"17:0
+helm test: OK
+
+===== step result: helm test: exit 0
+===== step: Smoke test through the ingress (commit must match this run)
+{"app":"carequeue","version":"1.0.0","commit":"c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1"}
+true
+true
+true
+===== step result: Smoke test through the ingress (commit must match this run): exit 0
+===== all replayed steps finished in 44 s (exit 0)
+
+# $GITHUB_STEP_SUMMARY written by the smoke test:
+### Deployed to kind
+Commit `c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1` is live: /api/info through ingress-nginx returned the same SHA.
+
+$ kubectl get pods -n carequeue -o custom-columns=POD:.metadata.name,RESTARTS:.status.containerStatuses[0].restartCount,IMAGE:.spec.containers[0].image,PULL_SECRET:.spec.imagePullSecrets[0].name
+POD                                  RESTARTS   IMAGE                                                                           PULL_SECRET
+carequeue-backend-fdd767765-fjv8q    0          docker.io/library/carequeue-backend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1    ghcr
+carequeue-backend-fdd767765-g7wr6    0          docker.io/library/carequeue-backend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1    ghcr
+carequeue-frontend-cfc6c5df7-cvmj2   0          docker.io/library/carequeue-frontend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1   ghcr
+carequeue-frontend-cfc6c5df7-vwmkh   0          docker.io/library/carequeue-frontend:c1c1c1c1deadbeefc1c1c1c1deadbeefc1c1c1c1   ghcr
+carequeue-postgresql-0               0          postgres:17-alpine                                                              <none>
+carequeue-test-connection            0          curlimages/curl:8.17.0                                                          <none>
+
