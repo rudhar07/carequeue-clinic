@@ -1,0 +1,13 @@
+# kubectl against the real EKS cluster (after the 2nd apply), 2026-10-17 ~00:59 IST
+
+$ aws eks update-kubeconfig --region ap-south-1 --name carequeue-eks
+Added new context arn:aws:eks:ap-south-1:************:cluster/carequeue-eks to <scratch>/aws/kubeconfig
+
+$ aws eks list-nodegroups --cluster-name carequeue-eks
+NODEGROUPS	carequeue-eks-ng-02843d9ae24bf2b43b99ae0640
+NODEGROUPS	carequeue-eks-ng-77026d4e05d0ceb5561ea00833
+
+$ kubectl get nodes -o wide
+NAME                                         STATUS   ROLES    AGE   VERSION               INTERNAL-IP   EXTERNAL-IP     OS-IMAGE                        KERNEL-VERSION                            CONTAINER-RUNTIME
+ip-10-0-1-161.ap-south-1.compute.internal    Ready    <none>   75s   v1.36.4-eks-b9510e3   10.0.1.161    3.111.169.30    Amazon Linux 2023.12.20261012   6.18.54-121.166.amzn2023.x86_64 (amd64)   containerd://2.3.5+unknown
+ip-10-0-30-140.ap-south-1.compute.internal   Ready    <none>   74s   v1.36.4-eks-b9510e3   10.0.30.140   13.204.43.227   Amazon Linux 2023.12.20261012   6.18.54-121.166.amzn2023.x86_64 (amd64)   containerd://2.3.5+unknown

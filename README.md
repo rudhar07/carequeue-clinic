@@ -228,14 +228,29 @@ cost) is in [docs/TERRAFORM.md](docs/TERRAFORM.md).
 Offline checks: fmt, validate, tflint and a Trivy config scan, all clean ([tf-01…tf-03](docs/evidence/)).
 A plan against a local AWS mock produced 51 resources ([tf-04](docs/evidence/tf-04-plan-against-local-mock.txt)).
 
-**AWS run (plan, apply, Console, destroy):** not completed for this submission. A real
-`terraform init` + `plan` against an AWS account (ap-south-1) authenticated and initialised, but the
-plan failed with **403 UnauthorizedOperation**: the account belongs to an AWS Organization whose
-service control policy explicitly denies EC2 and EKS calls in every region tried (ap-south-1,
-us-east-1, us-west-2). An IAM policy on the user cannot override an SCP deny, so nothing was created
-and there is nothing to destroy. Transcript, account IDs masked:
-[tf-05-real-aws-plan-blocked-by-scp.txt](docs/evidence/tf-05-real-aws-plan-blocked-by-scp.txt).
-The steps to apply and destroy on an unrestricted account are in [docs/TERRAFORM.md](docs/TERRAFORM.md).
+**AWS run (plan, apply, Console, destroy):** done on a real AWS account in ap-south-1, on 2026-10-17
+(account IDs masked in the transcripts).
+
+1. `terraform init` + `plan`: **51 to add** ([tf-aws-01](docs/evidence/tf-aws-01-init-plan.txt)).
+2. `terraform apply`: the VPC, subnets and EKS control plane came up, but the node group got no
+   nodes. The account is on the **AWS Free plan**, which only launches free-tier instance types, and
+   Auto Scaling reported *"The specified instance type is not eligible for Free Tier"* for `t3.medium`.
+   The apply was stopped, the local `terraform.tfvars` was set to `node_instance_types =
+   ["m7i-flex.large"]` (free-tier eligible, 2 vCPU / 8 GiB), and a second apply replaced the node group
+   ([tf-aws-02](docs/evidence/tf-aws-02-apply.txt)). The committed default stays `t3.medium` for a
+   normal paid account.
+3. `kubectl get nodes`: **2 nodes Ready**, Kubernetes v1.36 ([tf-aws-03](docs/evidence/tf-aws-03-kubectl-get-nodes.txt)).
+4. `terraform destroy`: started right after step 3; the EC2 nodes were already terminated when this
+   was committed, and the cluster and VPC deletion was still in progress.
+
+| Plan | VPC in the Console | EKS cluster in the Console |
+|---|---|---|
+| ![plan](docs/screenshots/aws-01-terraform-plan.png) | ![vpc](docs/screenshots/aws-02-console-vpc.png) | ![eks](docs/screenshots/aws-03-console-eks-cluster-active.png) |
+
+`kubectl get nodes` on EKS: ![nodes](docs/screenshots/aws-04-terminal-kubectl-get-nodes.png)
+
+An earlier attempt from a different AWS account was blocked by an AWS Organizations SCP
+([tf-05](docs/evidence/tf-05-real-aws-plan-blocked-by-scp.txt)); nothing was created there.
 
 ## 8. Kubernetes + Helm
 
@@ -317,7 +332,7 @@ and the verification.
 | M4 Docker | `backend/Dockerfile`, `frontend/Dockerfile` (multi-stage), non-root ([07](docs/evidence/07-nonroot.txt)), compose ([05](docs/evidence/05-compose-up.txt), [11](docs/evidence/11-compose-localhost-3000.txt), `localhost:3000` screenshots in section 3) |
 | M5 CI/CD | `.github/workflows/ci-cd.yml`, green run links and screenshots in section 5, GHCR packages with SHA tags (screenshots in section 5) |
 | M6 DevSecOps | Trivy steps in the workflow, explanation and pipeline Trivy output in section 6 |
-| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), offline validation, mock plan and the real AWS plan attempt (blocked by an org SCP) in section 7 |
+| M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), real AWS plan, apply, Console screenshots and `kubectl get nodes` in section 7 |
 | M8 Kubernetes + Helm | `k8s/namespace.yaml`, `helm/carequeue/`, section 8 screenshots |
 | M9 Observability | `/metrics`, `monitoring/`, section 9 screenshots |
 | M10 Docs + demo | this README; live demo: commit a change → pipeline → new SHA deployed |
