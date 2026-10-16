@@ -1,0 +1,6 @@
+# Test and audit tooling (not installed in the Docker image).
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.13.1  # transport used by Starlette 1.x TestClient
+pip-audit==2.10.1
