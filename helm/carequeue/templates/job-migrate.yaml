@@ -29,6 +29,11 @@ metadata:
     helm.sh/hook: post-install,pre-upgrade
     helm.sh/hook-weight: "0"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    # Argo CD maps Helm's pre-upgrade hook to PreSync, which would run before Postgres exists.
+    # Its own annotations take precedence: run after the app is synced, in order.
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: {{ .Values.migrations.backoffLimit }}
   activeDeadlineSeconds: {{ .Values.migrations.activeDeadlineSeconds }}

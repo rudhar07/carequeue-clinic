@@ -26,9 +26,12 @@ autoscaling → monitoring → troubleshooting).
 7. [Terraform: AWS VPC + EKS](#7-terraform-aws-vpc--eks)
 8. [Kubernetes + Helm](#8-kubernetes--helm)
 9. [Monitoring: Prometheus + Grafana](#9-monitoring-prometheus--grafana)
-10. [Troubleshooting lab](#10-troubleshooting-lab)
-11. [Rubric map (M1–M10)](#11-rubric-map)
-12. [Repository layout](#12-repository-layout)
+10. [GitOps with Argo CD](#10-gitops-with-argo-cd)
+11. [Troubleshooting lab](#11-troubleshooting-lab)
+12. [Demo: video and slides](#12-demo-video-and-slides)
+13. [Known issues and limitations](#13-known-issues-and-limitations)
+14. [Rubric map (M1–M10)](#14-rubric-map)
+15. [Repository layout](#15-repository-layout)
 
 ---
 
@@ -310,7 +313,27 @@ and [k8s-08: the CI deploy job replayed verbatim](docs/evidence/k8s-08-ci-deploy
 
 Evidence: [mon-02 targets + PromQL](docs/evidence/mon-02-prometheus-targets-and-promql.txt), [mon-03 Grafana](docs/evidence/mon-03-grafana.txt).
 
-## 10. Troubleshooting lab
+## 10. GitOps with Argo CD
+
+Argo CD deploys CareQueue from this repository, so Git is the source of truth. [gitops/argocd-application.yaml](gitops/argocd-application.yaml)
+points Argo CD at the Helm chart `helm/carequeue` on `main`, with the images CI pushed to GHCR pinned to a commit SHA.
+
+| Setting | Effect |
+|---|---|
+| `syncPolicy.automated` | A new commit on `main` is applied without anyone running `helm` or `kubectl` |
+| `selfHeal: true` | Manual changes in the cluster (e.g. `kubectl scale`) are reverted to what Git says |
+| `prune: true` | Resources removed from Git are deleted from the cluster |
+| `ignoreDifferences` on `/spec/replicas` | The HPA owns the replica count, so autoscaling isn't reported as drift |
+
+```bash
+scripts/kind-up.sh && scripts/monitoring-up.sh && scripts/argocd-up.sh
+argocd app get carequeue          # Sync Status: Synced, Health Status: Healthy
+```
+
+The release flow: CI builds `carequeue-*:<sha>` → bump the tags in the Application → commit → Argo CD rolls it out.
+Details: [gitops/README.md](gitops/README.md).
+
+## 11. Troubleshooting lab
 
 [troubleshooting/README.md](troubleshooting/README.md) has six faults I broke on purpose and fixed on a
 real cluster. For each: the symptom, the commands I used to investigate, the root cause, the fix,
@@ -325,7 +348,31 @@ and the verification.
 | 5 | no CPU requests | HPA targets `<unknown>` |
 | 6 | wrong liveness path | restart loop, fixed with `helm rollback` |
 
-## 11. Rubric map
+## 12. Demo: video and slides
+
+The [demo/](demo/) folder holds the final presentation:
+- **Video:** [demo/CareQueue-demo.mp4](demo/CareQueue-demo.mp4) (about 8 minutes, captioned, no narration). In order:
+  1. the slides;
+  2. a walkthrough of the codebase;
+  3. CI/CD on GitHub: the push-triggered run for `fc78c75` with all 7 jobs green, the Trivy gate and the SHA-tagged images in GHCR;
+  4. Terraform on AWS: `terraform plan` (51 resources), apply, the AWS Console (VPC, EKS cluster Active), `kubectl get nodes` and `terraform destroy`. This part is shown from the real run on 17 Oct 2026: its logs are in [docs/evidence](docs/evidence/) and the Console screenshots in [docs/screenshots](docs/screenshots/). The cluster was destroyed straight after to avoid cost;
+  5. Argo CD on the local kind cluster: the app Synced/Healthy, its resource tree, and a self-heal test (a Service deleted by hand is recreated from Git);
+  6. Kubernetes: pods, services, Ingress, HPA and the app through the Ingress;
+  7. Prometheus: the CareQueue targets UP, a PromQL query and the alert rules;
+  8. the live Grafana dashboard under load.
+- **Slides:** [demo/CareQueue-presentation.pptx](demo/CareQueue-presentation.pptx) (14 slides: overview, tech stack, architecture, app and tests, Docker, CI/CD, DevSecOps, infrastructure, Kubernetes, GitOps, observability, troubleshooting, learnings and limitations).
+
+## 13. Known issues and limitations
+
+- **No NAT gateway** by default, to keep the AWS lab cheap: EKS worker nodes run in public subnets with public IPs. `enable_private_subnets=true` switches to private subnets plus a NAT gateway.
+- **AWS is short-lived:** the VPC and EKS cluster were applied for the evidence and the video, then destroyed. The always-on demo runs on a local **kind** cluster.
+- **Free-plan AWS account:** it only launches free-tier-eligible instance types, so the node group used `m7i-flex.large` instead of the default `t3.medium` (set in the local, git-ignored `terraform.tfvars`).
+- **ingress-nginx** is used for routing; the upstream project is retired, so a production setup would move to Gateway API or another controller.
+- **One database instance** (a Postgres StatefulSet with a PVC): no replication or automated backups.
+- **Secrets** in the chart are obviously fake demo values; a real deployment would use an external secret store.
+- **GitOps image bump is manual:** CI pushes SHA-tagged images, and the tag in the Argo CD Application is updated by a commit (it could be automated with Argo CD Image Updater).
+
+## 14. Rubric map
 
 | Module | Where |
 |---|---|
@@ -338,9 +385,9 @@ and the verification.
 | M7 Terraform | `terraform/`, `terraform.tfvars.example`, [docs/TERRAFORM.md](docs/TERRAFORM.md), real AWS plan, apply, Console screenshots, `kubectl get nodes` and destroy in section 7 |
 | M8 Kubernetes + Helm | `k8s/namespace.yaml`, `helm/carequeue/`, section 8 screenshots |
 | M9 Observability | `/metrics`, `monitoring/`, section 9 screenshots |
-| M10 Docs + demo | this README; live demo: commit a change → pipeline → new SHA deployed |
+| M10 Docs + demo | this README (incl. known issues), [demo/](demo/) video (MP4) and slides (PPTX), GitOps in section 10 |
 
-## 12. Repository layout
+## 15. Repository layout
 
 ```
 .github/workflows/ci-cd.yml   CI/CD pipeline
@@ -351,7 +398,9 @@ k8s/                          namespace + kind config + bootstrap order
 helm/carequeue/               Helm chart (values-dev / values-prod)
 terraform/                    AWS VPC + EKS
 monitoring/                   kube-prometheus-stack values + Grafana dashboard
+gitops/                       Argo CD Application (GitOps)
+demo/                         presentation video (MP4) + slides (PPTX)
 troubleshooting/              6 broken scenarios + write-up
-scripts/                      kind-up, deploy-local, monitoring-up, load-test, api-flow, screenshots
+scripts/                      kind-up, deploy-local, monitoring-up, argocd-up, load-test, api-flow, screenshots
 docs/                         APP, CICD, TERRAFORM guides; evidence/ transcripts; screenshots/
 ```

@@ -1,0 +1,61 @@
+# Argo CD Application: GitOps deployment of CareQueue.
+#
+# Git is the source of truth. Argo CD watches the Helm chart in this repository
+# (helm/carequeue on main) and keeps the "carequeue" namespace identical to it:
+#   - automated sync: a commit to main that changes the chart or values is applied
+#     without anyone running kubectl/helm;
+#   - selfHeal: manual changes in the cluster (kubectl scale/edit) are reverted;
+#   - prune: resources removed from Git are deleted from the cluster.
+#
+# The images are the ones CI published to GHCR, pinned to a commit SHA (never "latest").
+# To release a new version the GitOps way, change the two image tags below (and
+# GIT_SHA) to the new commit SHA, commit, and push: Argo CD rolls it out.
+#
+#   kubectl apply -n argocd -f gitops/argocd-application.yaml
+#   argocd app get carequeue
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: carequeue
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io   # deleting the Application also deletes what it deployed
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/rudhar07/carequeue-clinic.git
+    targetRevision: main
+    path: helm/carequeue
+    helm:
+      releaseName: carequeue
+      valueFiles:
+        - values-dev.yaml            # replicas, HPA, ingress, monitoring for the demo cluster
+      parameters:
+        - name: backend.image.repository
+          value: ghcr.io/rudhar07/carequeue-backend
+        - name: backend.image.tag
+          value: fc78c7559c7b4d9617b4a5f0d62a93d00f5a9956
+        - name: frontend.image.repository
+          value: ghcr.io/rudhar07/carequeue-frontend
+        - name: frontend.image.tag
+          value: fc78c7559c7b4d9617b4a5f0d62a93d00f5a9956
+        - name: backend.env.GIT_SHA
+          value: fc78c7559c7b4d9617b4a5f0d62a93d00f5a9956
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: carequeue
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff: {duration: 10s, factor: 2, maxDuration: 3m}
+  # The HPA owns the replica counts, so don't report them as drift.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
